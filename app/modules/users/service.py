@@ -2,6 +2,7 @@ from app.modules.users.schemas import UserCreateRequest, UserCreateResponse
 from app.modules.users.models import User
 from app.modules.users.repository import UserRepository
 from app.core.security import hash_password
+from app.shared.exceptions import BadRequestError, ConflictError
 
 
 class UserService:
@@ -13,11 +14,11 @@ class UserService:
 
         email = str(data.email).lower()
         if self.repository.email_exists(email):
-            raise ValueError("Ya existe una cuenta con ese correo")
+            raise ConflictError("Ya existe una cuenta con ese correo")
 
         role = self.repository.get_role_by_name(data.role_name)
         if role is None:
-            raise ValueError("El rol solicitado no está configurado")
+            raise BadRequestError("El rol solicitado no está configurado")
 
         user = User(
             name=data.name,

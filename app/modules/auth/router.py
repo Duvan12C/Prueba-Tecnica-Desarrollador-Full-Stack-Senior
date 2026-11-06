@@ -6,14 +6,21 @@ from app.shared.api_response import ApiResponse
 from app.modules.auth.schemas import LoginRequest, TokenResponse
 from app.modules.auth.service import AuthService
 from app.modules.auth.repository import AuthRepository
+from app.shared.exceptions import ERROR_RESPONSES
 
 router = APIRouter(
     prefix="/auth",
-    tags=["Authentication"]
+    tags=["Authentication"],
+    responses=ERROR_RESPONSES,
 )
 
 
-@router.post("/login", response_model=ApiResponse[TokenResponse])
+@router.post(
+    "/login",
+    response_model=ApiResponse[TokenResponse],
+    summary="Iniciar sesión",
+    description="Valida el correo y la contraseña y devuelve un token Bearer de acceso.",
+)
 def login(data: LoginRequest, db: Session = Depends(get_db)):
     repository = AuthRepository(db)
     service = AuthService(repository)

@@ -17,9 +17,10 @@ from app.modules.documents.schemas import (
 from app.modules.documents.service import DocumentService
 from app.modules.users.models import User
 from app.shared.api_response import ApiResponse
+from app.shared.exceptions import ERROR_RESPONSES
 
 
-router = APIRouter(prefix="/documents", tags=["Documents"])
+router = APIRouter(prefix="/documents", tags=["Documents"], responses=ERROR_RESPONSES)
 
 
 def build_service(db: Session) -> DocumentService:
@@ -39,7 +40,13 @@ def make_document_response(document, latest):
     )
 
 
-@router.post("", response_model=ApiResponse[DocumentResponse], status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=ApiResponse[DocumentResponse],
+    status_code=status.HTTP_201_CREATED,
+    summary="Crear documento",
+    description="Crea un documento en el espacio del Gestor y registra su versión inicial.",
+)
 def create_document(
     data: DocumentCreateRequest,
     db: Session = Depends(get_db),
@@ -57,9 +64,14 @@ def create_document(
         raise HTTPException(status_code=403, detail=str(error)) from error
 
 
-@router.get("", response_model=ApiResponse[list[DocumentListItem]])
+@router.get(
+    "",
+    response_model=ApiResponse[list[DocumentListItem]],
+    summary="Listar documentos accesibles",
+    description="Lista solo documentos del espacio indicado a los que el usuario autenticado tiene acceso.",
+)
 def list_documents(
-    space_work_id: int = Query(gt=0),
+    space_work_id: int = Query(gt=0, description="Filtra documentos visibles del espacio indicado"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -81,7 +93,12 @@ def list_documents(
     return ApiResponse[list[DocumentListItem]](success=True, message="Documentos accesibles", data=items)
 
 
-@router.get("/{document_id}", response_model=ApiResponse[DocumentResponse])
+@router.get(
+    "/{document_id}",
+    response_model=ApiResponse[DocumentResponse],
+    summary="Consultar documento",
+    description="Devuelve el contenido de la versión más reciente si el usuario tiene acceso al documento.",
+)
 def get_document(
     document_id: int,
     db: Session = Depends(get_db),
@@ -98,7 +115,12 @@ def get_document(
         raise HTTPException(status_code=404, detail=str(error)) from error
 
 
-@router.put("/{document_id}", response_model=ApiResponse[DocumentVersionResponse])
+@router.put(
+    "/{document_id}",
+    response_model=ApiResponse[DocumentVersionResponse],
+    summary="Guardar nueva versión",
+    description="Guarda el contenido y crea una versión inmutable nueva. Requiere permiso edit o admin.",
+)
 def save_document(
     document_id: int,
     data: DocumentSaveRequest,
@@ -114,7 +136,12 @@ def save_document(
         raise HTTPException(status_code=403, detail=str(error)) from error
 
 
-@router.get("/{document_id}/versions", response_model=ApiResponse[list[DocumentVersionResponse]])
+@router.get(
+    "/{document_id}/versions",
+    response_model=ApiResponse[list[DocumentVersionResponse]],
+    summary="Consultar historial",
+    description="Lista las versiones del documento en orden descendente. Requiere acceso de lectura.",
+)
 def list_versions(
     document_id: int,
     db: Session = Depends(get_db),
@@ -129,11 +156,16 @@ def list_versions(
         raise HTTPException(status_code=404, detail=str(error)) from error
 
 
-@router.get("/{document_id}/versions/compare", response_model=ApiResponse[VersionCompareResponse])
+@router.get(
+    "/{document_id}/versions/compare",
+    response_model=ApiResponse[VersionCompareResponse],
+    summary="Comparar versiones",
+    description="Devuelve un diff unificado entre dos versiones del mismo documento.",
+)
 def compare_versions(
     document_id: int,
-    from_version: int = Query(gt=0),
-    to_version: int = Query(gt=0),
+    from_version: int = Query(gt=0, description="Número de la versión base"),
+    to_version: int = Query(gt=0, description="Número de la versión que se compara"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -150,7 +182,12 @@ def compare_versions(
         raise HTTPException(status_code=404, detail=str(error)) from error
 
 
-@router.post("/{document_id}/versions/{version_number}/restore", response_model=ApiResponse[DocumentVersionResponse])
+@router.post(
+    "/{document_id}/versions/{version_number}/restore",
+    response_model=ApiResponse[DocumentVersionResponse],
+    summary="Restaurar versión",
+    description="Copia el contenido de una versión anterior en una nueva versión; no modifica el historial existente.",
+)
 def restore_version(
     document_id: int,
     version_number: int,
@@ -166,7 +203,12 @@ def restore_version(
         raise HTTPException(status_code=403, detail=str(error)) from error
 
 
-@router.put("/{document_id}/permissions/{target_user_id}", response_model=ApiResponse[DocumentPermissionResponse])
+@router.put(
+    "/{document_id}/permissions/{target_user_id}",
+    response_model=ApiResponse[DocumentPermissionResponse],
+    summary="Asignar permiso documental",
+    description="Asigna read, edit o admin a un miembro activo del espacio. Requiere permiso admin en el documento.",
+)
 def assign_permission(
     document_id: int,
     target_user_id: int,
@@ -195,7 +237,12 @@ def assign_permission(
         raise HTTPException(status_code=400, detail=str(error)) from error
 
 
-@router.delete("/{document_id}", response_model=ApiResponse[None])
+@router.delete(
+    "/{document_id}",
+    response_model=ApiResponse[None],
+    summary="Eliminar documento",
+    description="Marca el documento como eliminado, conserva sus versiones y registra la acción en la bitácora.",
+)
 def delete_document(
     document_id: int,
     db: Session = Depends(get_db),

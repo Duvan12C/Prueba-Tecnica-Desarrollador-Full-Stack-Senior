@@ -1,9 +1,9 @@
-from pydantic import BaseModel, EmailStr, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class SpaceWorkCreateRequest(BaseModel):
-    name: str
-    description: str | None = None
+    name: str = Field(min_length=1, max_length=150, description="Nombre del espacio de trabajo")
+    description: str | None = Field(default=None, description="Descripción opcional del espacio")
 
 
 class SpaceWorkResponse(BaseModel):

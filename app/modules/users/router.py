@@ -6,18 +6,22 @@ from app.modules.users.schemas import UserCreateRequest, UserCreateResponse
 from app.modules.users.service import UserService
 from app.modules.users.repository import UserRepository
 from app.shared.api_response import ApiResponse
+from app.shared.exceptions import ERROR_RESPONSES
 
 
 router = APIRouter(
     prefix="/users",
-    tags=["Users"]
+    tags=["Users"],
+    responses=ERROR_RESPONSES,
 )
 
 
 @router.post(
     "/create",
     response_model=ApiResponse[UserCreateResponse],
-    status_code=status.HTTP_201_CREATED
+    status_code=status.HTTP_201_CREATED,
+    summary="Registrar cuenta",
+    description="Crea una cuenta propia eligiendo el rol Gestor o Colaborador.",
 )
 def create(data: UserCreateRequest, db: Session = Depends(get_db)):
     repository = UserRepository(db)

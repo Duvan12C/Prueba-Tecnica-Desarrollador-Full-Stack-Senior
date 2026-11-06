@@ -8,20 +8,20 @@ PermissionName = Literal["read", "edit", "admin"]
 
 
 class DocumentCreateRequest(BaseModel):
-    space_work_id: int
-    title: str = Field(min_length=1, max_length=255)
-    content: str = ""
-    change_summary: str | None = Field(default=None, max_length=500)
+    space_work_id: int = Field(gt=0, description="Espacio donde se creará el documento")
+    title: str = Field(min_length=1, max_length=255, description="Título del documento")
+    content: str = Field(default="", description="Contenido de la versión inicial")
+    change_summary: str | None = Field(default=None, max_length=500, description="Resumen de la creación")
 
 
 class DocumentSaveRequest(BaseModel):
-    title: str | None = Field(default=None, min_length=1, max_length=255)
-    content: str
-    change_summary: str | None = Field(default=None, max_length=500)
+    title: str | None = Field(default=None, min_length=1, max_length=255, description="Título nuevo opcional")
+    content: str = Field(description="Contenido que se guardará como una versión nueva")
+    change_summary: str | None = Field(default=None, max_length=500, description="Resumen del cambio")
 
 
 class DocumentPermissionRequest(BaseModel):
-    permission: PermissionName
+    permission: PermissionName = Field(description="Nivel documental: read, edit o admin")
 
 
 class DocumentPermissionResponse(BaseModel):

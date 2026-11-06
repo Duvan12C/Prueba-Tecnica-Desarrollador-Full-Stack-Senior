@@ -4,6 +4,7 @@ from app.modules.spaceswork.schemas import (
 )
 from app.modules.spaceswork.models import SpaceWork
 from app.modules.spaceswork.repository import SpaceWorkRepository
+from app.shared.exceptions import ForbiddenError
 
 
 class SpaceWorkService:
@@ -14,7 +15,7 @@ class SpaceWorkService:
     def create_space_work(self, data: SpaceWorkCreateRequest, owner_user_id: int) -> SpaceWorkResponse:
 
         if not self.repository.is_manager(owner_user_id):
-            raise PermissionError("Solo un Gestor puede crear un espacio de trabajo")
+            raise ForbiddenError("Solo un Gestor puede crear un espacio de trabajo")
 
         space_work = SpaceWork(
             name=data.name,

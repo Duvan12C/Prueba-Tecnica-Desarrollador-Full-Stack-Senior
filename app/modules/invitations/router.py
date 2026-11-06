@@ -15,15 +15,22 @@ from app.modules.invitations.service import SpaceWorkInvitationService
 from app.modules.invitations.repository import SpaceWorkInvitationRepository
 
 from app.shared.api_response import ApiResponse
+from app.shared.exceptions import ERROR_RESPONSES
 
 
 router = APIRouter(
     prefix="/invitations",
-    tags=["Invitations"]
+    tags=["Invitations"],
+    responses=ERROR_RESPONSES,
 )
 
 
-@router.post("/accept", response_model=ApiResponse[SpaceWorkInvitationResponse])
+@router.post(
+    "/accept",
+    response_model=ApiResponse[SpaceWorkInvitationResponse],
+    summary="Aceptar invitación",
+    description="Acepta una invitación vigente si el token y el correo del usuario autenticado coinciden.",
+)
 def accept(
     data: SpaceWorkInvitationAcceptRequest,
     db: Session = Depends(get_db),
@@ -50,7 +57,9 @@ def accept(
 @router.post(
     "/create",
     response_model=ApiResponse[SpaceWorkInvitationResponse],
-    status_code=status.HTTP_201_CREATED
+    status_code=status.HTTP_201_CREATED,
+    summary="Invitar usuario al espacio",
+    description="Genera una invitación de siete días. El token se entrega una sola vez en la respuesta.",
 )
 def create(
     data: SpaceWorkInvitationCreateRequest,

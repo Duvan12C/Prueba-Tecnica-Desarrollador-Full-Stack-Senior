@@ -3,6 +3,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.modules.users.models import User, Role
+from app.shared.exceptions import ConflictError
 
 
 class UserRepository:
@@ -26,7 +27,7 @@ class UserRepository:
 
         except IntegrityError as error:
             self.db.rollback()
-            raise ValueError("Ya existe una cuenta con ese correo") from error
+            raise ConflictError("Ya existe una cuenta con ese correo") from error
         except Exception:
             self.db.rollback()
             raise

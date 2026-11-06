@@ -11,17 +11,21 @@ from app.modules.spaceswork.schemas import (
     SpaceWorkCreateRequest,
     SpaceWorkResponse
 )
+from app.shared.exceptions import ERROR_RESPONSES
 
 
 router = APIRouter(
     prefix="/space_work",
-    tags=["SpaceWork"]
+    tags=["SpaceWork"],
+    responses=ERROR_RESPONSES,
 )
 
 @router.post(
     "/create",
     response_model=ApiResponse[SpaceWorkResponse],
-    status_code=status.HTTP_201_CREATED
+    status_code=status.HTTP_201_CREATED,
+    summary="Crear espacio de trabajo",
+    description="Crea un espacio para el Gestor autenticado y lo registra como miembro activo.",
 )
 def create(
     data: SpaceWorkCreateRequest,

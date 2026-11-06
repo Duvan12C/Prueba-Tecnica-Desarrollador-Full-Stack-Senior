@@ -1,4 +1,5 @@
 from app.modules.audit.repository import AuditRepository
+from app.shared.exceptions import ResourceNotFoundError
 
 
 class AuditService:
@@ -16,7 +17,7 @@ class AuditService:
         offset: int,
     ):
         if not self.repository.can_view_space(space_work_id, user_id):
-            raise LookupError("Espacio de trabajo no encontrado")
+            raise ResourceNotFoundError("Espacio de trabajo no encontrado")
         return self.repository.list_for_space(
             space_work_id,
             action=action,

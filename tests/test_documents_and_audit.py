@@ -170,3 +170,28 @@ def test_document_delete_is_soft_and_audited(api, user_factory, auth_headers):
     assert document.is_deleted
     assert version_count == 1
     assert deleted_action is not None
+
+
+def test_global_errors_have_consistent_payload_and_are_in_openapi(api, user_factory, auth_headers):
+    client, test_sessions = api
+    manager = user_factory("global-errors@example.com", "Gestor")
+
+    unauthorized = client.get("/documents?space_work_id=1")
+    assert unauthorized.status_code == 401
+    assert unauthorized.json()["success"] is False
+    assert unauthorized.json()["code"] == "unauthorized"
+    assert "detail" not in unauthorized.json()
+
+    missing = client.get("/documents/987654", headers=auth_headers(manager))
+    assert missing.status_code == 404
+    assert missing.json()["code"] == "not_found"
+
+    invalid = client.post("/auth/login", json={"email": "invalid-email", "password": "x"})
+    assert invalid.status_code == 422
+    assert invalid.json()["code"] == "validation_error"
+    assert invalid.json()["details"][0]["field"] == "body.email"
+
+    schema = client.get("/openapi.json").json()
+    assert "/documents/{document_id}" in schema["paths"]
+    assert "ApiErrorResponse" in schema["components"]["schemas"]
+    assert "summary" in schema["paths"]["/documents"]["post"]

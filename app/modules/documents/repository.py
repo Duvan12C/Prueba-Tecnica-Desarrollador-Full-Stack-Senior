@@ -10,6 +10,7 @@ from app.modules.permissions.models import Permission, PermissionDocumentUser
 from app.modules.spaceswork.models import SpaceWork, SpaceWorkUser
 from app.modules.users.models import Role, User
 from app.modules.versions.models import DocumentVersion
+from app.shared.exceptions import BadRequestError, ConflictError
 
 
 def utc_now_naive() -> datetime:
@@ -189,7 +190,7 @@ class DocumentRepository:
         try:
             latest = self.latest_version(document.id)
             if latest is None:
-                raise ValueError("El documento no tiene una versión inicial")
+                raise ConflictError("El documento no tiene una versión inicial")
 
             old_title = document.title
             if title is not None:
@@ -236,7 +237,7 @@ class DocumentRepository:
         try:
             permission = self.db.scalar(select(Permission).where(Permission.name == permission_name))
             if permission is None:
-                raise ValueError("El nivel de permiso no está configurado. Ejecuta las migraciones.")
+                raise BadRequestError("El nivel de permiso no está configurado. Ejecuta las migraciones.")
 
             statement = select(SpaceWorkUser.id).where(
                 SpaceWorkUser.space_work_id == document.space_work_id,
@@ -244,7 +245,7 @@ class DocumentRepository:
                 SpaceWorkUser.is_active == true(),
             )
             if self.db.scalar(statement) is None:
-                raise ValueError("El usuario no pertenece al espacio de trabajo activo")
+                raise BadRequestError("El usuario no pertenece al espacio de trabajo activo")
 
             assignment = self.db.scalar(select(PermissionDocumentUser).where(
                 PermissionDocumentUser.document_id == document.id,

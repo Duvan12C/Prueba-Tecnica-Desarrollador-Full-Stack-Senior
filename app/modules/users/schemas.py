@@ -4,10 +4,13 @@ from pydantic import BaseModel, EmailStr, ConfigDict, Field
 
 
 class UserCreateRequest(BaseModel):
-    name: str = Field(min_length=1, max_length=150)
-    email: EmailStr
-    password: str = Field(min_length=12, max_length=128)
-    role_name: Literal["Gestor", "Colaborador"]
+    name: str = Field(min_length=1, max_length=150, description="Nombre visible del usuario")
+    email: EmailStr = Field(description="Correo que se usará para iniciar sesión")
+    password: str = Field(min_length=12, max_length=128, description="Contraseña de al menos 12 caracteres")
+    role_name: Literal["Gestor", "Colaborador"] = Field(
+        description="Rol de la cuenta elegido durante el registro",
+        examples=["Colaborador"],
+    )
 
 
 class UserCreateResponse(BaseModel):
