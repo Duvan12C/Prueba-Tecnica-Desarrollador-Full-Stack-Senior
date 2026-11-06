@@ -1,4 +1,6 @@
-from pydantic import BaseModel, ConfigDict, Field
+from datetime import datetime
+
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
 class SpaceWorkCreateRequest(BaseModel):
@@ -13,3 +15,11 @@ class SpaceWorkResponse(BaseModel):
     owner_user_id: int
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class SpaceWorkMemberResponse(BaseModel):
+    user_id: int
+    name: str
+    email: EmailStr
+    role_name: str
+    joined_at: datetime

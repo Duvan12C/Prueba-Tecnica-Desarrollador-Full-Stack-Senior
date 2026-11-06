@@ -93,6 +93,19 @@ class DocumentService:
             assigned_by_user_id=actor_user_id,
         )
 
+    def revoke_permission(self, document_id: int, target_user_id: int, actor_user_id: int) -> None:
+        document = self.repository.get_document(document_id)
+        if document is None:
+            raise ResourceNotFoundError("Documento no encontrado")
+        actor_permission = self.repository.get_access_level(document, actor_user_id)
+        if actor_permission != "admin":
+            raise ForbiddenError("Necesitas permiso admin en este documento para gestionar sus permisos")
+        self.repository.revoke_permission(
+            document=document,
+            target_user_id=target_user_id,
+            revoked_by_user_id=actor_user_id,
+        )
+
     def delete(self, document_id: int, user_id: int) -> None:
         document = self.repository.get_document(document_id)
         if document is None:

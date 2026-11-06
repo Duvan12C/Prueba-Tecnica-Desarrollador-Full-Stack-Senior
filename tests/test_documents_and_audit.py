@@ -4,6 +4,7 @@ from sqlalchemy import select
 
 from app.modules.audit.models import AuditLog
 from app.modules.documents.model import Document
+from app.modules.permissions.models import PermissionDocumentUser
 from app.modules.spaceswork.models import SpaceWork, SpaceWorkUser
 from app.modules.users.models import User
 from app.modules.versions.models import DocumentVersion
@@ -107,7 +108,7 @@ def test_read_permission_cannot_edit_but_edit_creates_new_immutable_version(
     assert [version.version_number for version in versions] == [1, 2]
 
 
-def test_invitation_acceptance_adds_member_and_is_audited(api, user_factory, auth_headers):
+def test_invitation_acceptance_adds_member_and_is_audited(api, user_factory, auth_headers, add_member):
     client, test_sessions = api
     manager = user_factory("invite-owner@example.com", "Gestor")
     invitee = user_factory("invitee@example.com")
@@ -142,6 +143,32 @@ def test_invitation_acceptance_adds_member_and_is_audited(api, user_factory, aut
         actions = set(db.scalars(select(AuditLog.action).where(AuditLog.space_work_id == space_id)).all())
     assert membership is not None and membership.is_active
     assert {"space_work.created", "invitation.created", "invitation.accepted"} <= actions
+
+    invitee_spaces = client.get("/space_work", headers=auth_headers(invitee))
+    assert invitee_spaces.status_code == 200
+    assert [space["id"] for space in invitee_spaces.json()["data"]] == [space_id]
+
+    owner_members = client.get(f"/space_work/{space_id}/members", headers=auth_headers(manager))
+    assert owner_members.status_code == 200
+    assert {member["email"] for member in owner_members.json()["data"]} >= {
+        manager.email,
+        invitee.email,
+    }
+
+    regular_member = user_factory("regular-member@example.com")
+    add_member(space_id, regular_member.id)
+    hidden_members = client.get(f"/space_work/{space_id}/members", headers=auth_headers(regular_member))
+    assert hidden_members.status_code == 404
+
+    document_id = create_document(client, manager, auth_headers, space_id)
+    grant_admin = client.put(
+        f"/documents/{document_id}/permissions/{invitee.id}",
+        headers=auth_headers(manager),
+        json={"permission": "admin"},
+    )
+    assert grant_admin.status_code == 200
+    admin_members = client.get(f"/space_work/{space_id}/members", headers=auth_headers(invitee))
+    assert admin_members.status_code == 200
 
     foreign_audit = client.get(f"/audit?space_work_id={space_id}", headers=auth_headers(invitee))
     assert foreign_audit.status_code == 404
@@ -195,3 +222,98 @@ def test_global_errors_have_consistent_payload_and_are_in_openapi(api, user_fact
     assert "/documents/{document_id}" in schema["paths"]
     assert "ApiErrorResponse" in schema["components"]["schemas"]
     assert "summary" in schema["paths"]["/documents"]["post"]
+
+
+def test_permission_member_and_invitation_access_can_be_revoked_and_audited(
+    api, user_factory, auth_headers
+):
+    client, test_sessions = api
+    manager = user_factory("revoke-owner@example.com", "Gestor")
+    member = user_factory("revoke-member@example.com")
+    invitee = user_factory("cancel-invitee@example.com")
+
+    space_response = client.post(
+        "/space_work/create",
+        headers=auth_headers(manager),
+        json={"name": "Revocation space", "description": "test"},
+    )
+    space_id = space_response.json()["data"]["id"]
+
+    member_invitation = client.post(
+        "/invitations/create",
+        headers=auth_headers(manager),
+        json={"space_work_id": space_id, "email": member.email},
+    ).json()["data"]
+    accepted = client.post(
+        "/invitations/accept",
+        headers=auth_headers(member),
+        json={"token": member_invitation["token"]},
+    )
+    assert accepted.status_code == 200
+
+    document_id = create_document(client, manager, auth_headers, space_id)
+    assignment = client.put(
+        f"/documents/{document_id}/permissions/{member.id}",
+        headers=auth_headers(manager),
+        json={"permission": "read"},
+    )
+    assert assignment.status_code == 200
+
+    revoked = client.delete(
+        f"/documents/{document_id}/permissions/{member.id}",
+        headers=auth_headers(manager),
+    )
+    assert revoked.status_code == 200, revoked.text
+    assert client.get(f"/documents/{document_id}", headers=auth_headers(member)).status_code == 404
+
+    invitee_invitation = client.post(
+        "/invitations/create",
+        headers=auth_headers(manager),
+        json={"space_work_id": space_id, "email": invitee.email},
+    ).json()["data"]
+    pending = client.get(
+        f"/invitations?space_work_id={space_id}",
+        headers=auth_headers(manager),
+    )
+    assert pending.status_code == 200
+    assert invitee_invitation["id"] in {item["id"] for item in pending.json()["data"]}
+
+    cancelled = client.delete(
+        f"/invitations/{invitee_invitation['id']}",
+        headers=auth_headers(manager),
+    )
+    assert cancelled.status_code == 200, cancelled.text
+    assert cancelled.json()["data"]["status"] == "Cancelled"
+
+    reassigned = client.put(
+        f"/documents/{document_id}/permissions/{member.id}",
+        headers=auth_headers(manager),
+        json={"permission": "read"},
+    )
+    assert reassigned.status_code == 200
+    removed = client.delete(
+        f"/space_work/{space_id}/members/{member.id}",
+        headers=auth_headers(manager),
+    )
+    assert removed.status_code == 200, removed.text
+    assert client.get(f"/documents/{document_id}", headers=auth_headers(member)).status_code == 404
+    assert client.get("/space_work", headers=auth_headers(member)).json()["data"] == []
+
+    with test_sessions() as db:
+        membership = db.scalar(select(SpaceWorkUser).where(
+            SpaceWorkUser.space_work_id == space_id,
+            SpaceWorkUser.user_id == member.id,
+        ))
+        assignment = db.scalar(select(PermissionDocumentUser.id).where(
+            PermissionDocumentUser.space_work_id == space_id,
+            PermissionDocumentUser.user_id == member.id,
+        ))
+        actions = set(db.scalars(select(AuditLog.action).where(AuditLog.space_work_id == space_id)).all())
+
+    assert membership is not None and membership.is_active is False
+    assert assignment is None
+    assert {
+        "document.permission_revoked",
+        "invitation.cancelled",
+        "space_work.member_removed",
+    } <= actions

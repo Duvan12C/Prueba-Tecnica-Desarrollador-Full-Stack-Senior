@@ -64,3 +64,30 @@ class SpaceWorkInvitationService:
 
         accepted = self.repository.accept(invitation, user)
         return SpaceWorkInvitationResponse.model_validate(accepted)
+
+    def list_pending_invitations(
+        self,
+        space_work_id: int,
+        manager_user_id: int,
+    ) -> list[SpaceWorkInvitationResponse]:
+        if not self.repository.can_manage_space(space_work_id, manager_user_id):
+            raise ResourceNotFoundError("Espacio de trabajo no encontrado")
+        invitations = self.repository.list_pending(space_work_id)
+        return [SpaceWorkInvitationResponse.model_validate(item) for item in invitations]
+
+    def cancel_invitation(self, invitation_id: int, manager_user_id: int) -> SpaceWorkInvitationResponse:
+        invitation = self.repository.get_by_id(invitation_id)
+        if invitation is None:
+            raise ResourceNotFoundError("Invitación no encontrada")
+        if not self.repository.can_manage_space(invitation.space_work_id, manager_user_id):
+            raise ResourceNotFoundError("Invitación no encontrada")
+        if invitation.status != InvitationStatus.PENDING:
+            raise ConflictError("Solo se pueden cancelar invitaciones pendientes")
+
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
+        if invitation.expires_at <= now:
+            self.repository.expire(invitation)
+            raise ResourceGoneError("La invitación ha expirado")
+
+        cancelled = self.repository.cancel(invitation, manager_user_id)
+        return SpaceWorkInvitationResponse.model_validate(cancelled)

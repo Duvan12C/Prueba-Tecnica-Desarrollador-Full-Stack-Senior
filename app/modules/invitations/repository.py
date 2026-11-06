@@ -66,6 +66,22 @@ class SpaceWorkInvitationRepository:
             select(SpaceWorkInvitation).where(SpaceWorkInvitation.token_hash == token_hash)
         )
 
+    def get_by_id(self, invitation_id: int) -> SpaceWorkInvitation | None:
+        return self.db.get(SpaceWorkInvitation, invitation_id)
+
+    def list_pending(self, space_work_id: int) -> list[SpaceWorkInvitation]:
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
+        statement = (
+            select(SpaceWorkInvitation)
+            .where(
+                SpaceWorkInvitation.space_work_id == space_work_id,
+                SpaceWorkInvitation.status == InvitationStatus.PENDING,
+                SpaceWorkInvitation.expires_at > now,
+            )
+            .order_by(SpaceWorkInvitation.created_at.desc(), SpaceWorkInvitation.id.desc())
+        )
+        return list(self.db.scalars(statement).all())
+
     def get_membership(self, space_work_id: int, user_id: int) -> SpaceWorkUser | None:
         return self.db.scalar(select(SpaceWorkUser).where(
             SpaceWorkUser.space_work_id == space_work_id,
@@ -76,6 +92,27 @@ class SpaceWorkInvitationRepository:
         invitation.status = InvitationStatus.EXPIRED
         invitation.responded_at = datetime.now(timezone.utc).replace(tzinfo=None)
         self.db.commit()
+
+    def cancel(self, invitation: SpaceWorkInvitation, cancelled_by_user_id: int) -> SpaceWorkInvitation:
+        try:
+            invitation.status = InvitationStatus.CANCELLED
+            invitation.responded_at = datetime.now(timezone.utc).replace(tzinfo=None)
+            self.db.add(AuditLog(
+                user_id=cancelled_by_user_id,
+                space_work_id=invitation.space_work_id,
+                action="invitation.cancelled",
+                entity_type="space_work_invitation",
+                entity_id=invitation.id,
+                description="Invitación pendiente cancelada por el Gestor",
+                old_values=InvitationStatus.PENDING.value,
+                new_values=InvitationStatus.CANCELLED.value,
+            ))
+            self.db.commit()
+            self.db.refresh(invitation)
+            return invitation
+        except Exception:
+            self.db.rollback()
+            raise
 
     def accept(self, invitation: SpaceWorkInvitation, user: User) -> SpaceWorkInvitation:
         try:

@@ -238,6 +238,22 @@ def assign_permission(
 
 
 @router.delete(
+    "/{document_id}/permissions/{target_user_id}",
+    response_model=ApiResponse[None],
+    summary="Revocar permiso documental",
+    description="Quita el permiso del usuario en este documento. Requiere permiso admin en el documento.",
+)
+def revoke_permission(
+    document_id: int,
+    target_user_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    build_service(db).revoke_permission(document_id, target_user_id, current_user.id)
+    return ApiResponse[None](success=True, message="Permiso documental revocado")
+
+
+@router.delete(
     "/{document_id}",
     response_model=ApiResponse[None],
     summary="Eliminar documento",

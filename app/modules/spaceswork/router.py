@@ -9,6 +9,7 @@ from app.modules.spaceswork.repository import SpaceWorkRepository
 from app.shared.api_response import ApiResponse
 from app.modules.spaceswork.schemas import (
     SpaceWorkCreateRequest,
+    SpaceWorkMemberResponse,
     SpaceWorkResponse
 )
 from app.shared.exceptions import ERROR_RESPONSES
@@ -19,6 +20,67 @@ router = APIRouter(
     tags=["SpaceWork"],
     responses=ERROR_RESPONSES,
 )
+
+
+@router.get(
+    "",
+    response_model=ApiResponse[list[SpaceWorkResponse]],
+    summary="Listar mis espacios",
+    description="Devuelve los espacios activos donde el usuario autenticado es propietario o miembro activo.",
+)
+def list_spaces(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    spaces = SpaceWorkService(SpaceWorkRepository(db)).list_for_user(current_user.id)
+    return ApiResponse[list[SpaceWorkResponse]](
+        success=True,
+        message="Espacios de trabajo del usuario",
+        data=spaces,
+    )
+
+
+@router.get(
+    "/{space_work_id}/members",
+    response_model=ApiResponse[list[SpaceWorkMemberResponse]],
+    summary="Listar miembros activos",
+    description=(
+        "Devuelve los miembros activos del espacio. Requiere ser su Gestor propietario "
+        "o tener permiso admin en un documento activo del espacio."
+    ),
+)
+def list_members(
+    space_work_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    members = SpaceWorkService(SpaceWorkRepository(db)).list_members(space_work_id, current_user.id)
+    return ApiResponse[list[SpaceWorkMemberResponse]](
+        success=True,
+        message="Miembros activos del espacio",
+        data=members,
+    )
+
+
+@router.delete(
+    "/{space_work_id}/members/{member_user_id}",
+    response_model=ApiResponse[None],
+    summary="Retirar miembro del espacio",
+    description="Desactiva su membresía, revoca sus permisos documentales y registra la acción en la bitácora.",
+)
+def remove_member(
+    space_work_id: int,
+    member_user_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    SpaceWorkService(SpaceWorkRepository(db)).remove_member(
+        space_work_id,
+        member_user_id,
+        current_user.id,
+    )
+    return ApiResponse[None](success=True, message="Miembro retirado del espacio y accesos revocados")
+
 
 @router.post(
     "/create",

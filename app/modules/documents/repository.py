@@ -10,7 +10,7 @@ from app.modules.permissions.models import Permission, PermissionDocumentUser
 from app.modules.spaceswork.models import SpaceWork, SpaceWorkUser
 from app.modules.users.models import Role, User
 from app.modules.versions.models import DocumentVersion
-from app.shared.exceptions import BadRequestError, ConflictError
+from app.shared.exceptions import BadRequestError, ConflictError, ResourceNotFoundError
 
 
 def utc_now_naive() -> datetime:
@@ -280,6 +280,41 @@ class DocumentRepository:
             self.db.commit()
             self.db.refresh(assignment)
             return assignment
+        except Exception:
+            self.db.rollback()
+            raise
+
+    def revoke_permission(
+        self,
+        *,
+        document: Document,
+        target_user_id: int,
+        revoked_by_user_id: int,
+    ) -> None:
+        try:
+            assignment = self.db.scalar(select(PermissionDocumentUser).where(
+                PermissionDocumentUser.document_id == document.id,
+                PermissionDocumentUser.space_work_id == document.space_work_id,
+                PermissionDocumentUser.user_id == target_user_id,
+            ))
+            if assignment is None:
+                raise ResourceNotFoundError("El usuario no tiene un permiso asignado en este documento")
+
+            permission_name = self.db.scalar(
+                select(Permission.name).where(Permission.id == assignment.permission_id)
+            )
+            self.db.delete(assignment)
+            self.db.add(AuditLog(
+                user_id=revoked_by_user_id,
+                space_work_id=document.space_work_id,
+                action="document.permission_revoked",
+                entity_type="document",
+                entity_id=document.id,
+                description="Permiso documental revocado",
+                old_values=json.dumps({"user_id": target_user_id, "permission": permission_name}),
+                new_values=json.dumps({"user_id": target_user_id, "permission": None}),
+            ))
+            self.db.commit()
         except Exception:
             self.db.rollback()
             raise

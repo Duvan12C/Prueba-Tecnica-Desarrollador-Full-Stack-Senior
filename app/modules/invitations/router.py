@@ -25,6 +25,26 @@ router = APIRouter(
 )
 
 
+@router.get(
+    "",
+    response_model=ApiResponse[list[SpaceWorkInvitationResponse]],
+    summary="Listar invitaciones pendientes",
+    description="Lista las invitaciones vigentes del espacio. Solo puede consultarlas su Gestor propietario.",
+)
+def list_pending(
+    space_work_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    service = SpaceWorkInvitationService(SpaceWorkInvitationRepository(db))
+    invitations = service.list_pending_invitations(space_work_id, current_user.id)
+    return ApiResponse[list[SpaceWorkInvitationResponse]](
+        success=True,
+        message="Invitaciones pendientes del espacio",
+        data=invitations,
+    )
+
+
 @router.post(
     "/accept",
     response_model=ApiResponse[SpaceWorkInvitationResponse],
@@ -88,3 +108,23 @@ def create(
         )
     except PermissionError as error:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(error))
+
+
+@router.delete(
+    "/{invitation_id}",
+    response_model=ApiResponse[SpaceWorkInvitationResponse],
+    summary="Cancelar invitación pendiente",
+    description="Cancela la invitación y registra el evento. Solo puede hacerlo el Gestor propietario del espacio.",
+)
+def cancel(
+    invitation_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    service = SpaceWorkInvitationService(SpaceWorkInvitationRepository(db))
+    invitation = service.cancel_invitation(invitation_id, current_user.id)
+    return ApiResponse[SpaceWorkInvitationResponse](
+        success=True,
+        message="Invitación cancelada",
+        data=invitation,
+    )
