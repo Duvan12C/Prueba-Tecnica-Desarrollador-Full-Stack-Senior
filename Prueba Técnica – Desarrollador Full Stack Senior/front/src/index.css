@@ -1,0 +1,258 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: light;
+
+  --ds-primary-50: #ffffff;
+  --ds-primary-100: #eef0ff;
+  --ds-primary-200: #dbe1ff;
+  --ds-primary-300: #b4c5ff;
+  --ds-primary-400: #8ca8ff;
+  --ds-primary-500: #346ef6;
+  --ds-primary-600: #0053db;
+  --ds-primary-700: #003ea8;
+  --ds-primary-800: #002a78;
+  --ds-primary-900: #00174b;
+
+  --ds-secondary-50: #ffffff;
+  --ds-secondary-100: #eef0ff;
+  --ds-secondary-200: #dae2fd;
+  --ds-secondary-300: #bec6e0;
+  --ds-secondary-400: #a3abc4;
+  --ds-secondary-500: #8990a8;
+  --ds-secondary-600: #6f778e;
+  --ds-secondary-700: #565e74;
+  --ds-secondary-800: #3f465c;
+  --ds-secondary-900: #283044;
+  --ds-secondary-950: #131b2e;
+
+  --ds-tertiary-50: #beffdb;
+  --ds-tertiary-100: #6ffbbe;
+  --ds-tertiary-200: #4edea3;
+  --ds-tertiary-300: #26c289;
+  --ds-tertiary-400: #00a572;
+  --ds-tertiary-500: #00885d;
+  --ds-tertiary-600: #006c49;
+  --ds-tertiary-700: #005236;
+  --ds-tertiary-800: #003824;
+  --ds-tertiary-900: #002113;
+
+  --ds-neutral-50: #eaf1ff;
+  --ds-neutral-100: #d3e4fe;
+  --ds-neutral-200: #b7c8e1;
+  --ds-neutral-300: #9cacc5;
+  --ds-neutral-400: #8292aa;
+  --ds-neutral-500: #68788f;
+  --ds-neutral-600: #505f76;
+  --ds-neutral-700: #38485d;
+  --ds-neutral-800: #213145;
+  --ds-neutral-900: #0b1c30;
+
+  --ds-surface: var(--ds-neutral-50);
+  --ds-surface-dim: var(--ds-neutral-100);
+  --ds-surface-bright: #ffffff;
+  --ds-surface-container-lowest: #ffffff;
+  --ds-surface-container-low: var(--ds-neutral-50);
+  --ds-surface-container: var(--ds-neutral-100);
+  --ds-surface-container-high: var(--ds-neutral-200);
+  --ds-surface-container-highest: var(--ds-neutral-300);
+  --ds-surface-variant: var(--ds-neutral-100);
+  --ds-on-surface: var(--ds-neutral-900);
+  --ds-on-surface-variant: var(--ds-neutral-600);
+  --ds-inverse-surface: var(--ds-neutral-800);
+  --ds-inverse-on-surface: var(--ds-neutral-50);
+  --ds-outline: var(--ds-secondary-600);
+  --ds-outline-variant: var(--ds-neutral-200);
+  --ds-surface-tint: var(--ds-primary-600);
+
+  --ds-primary: var(--ds-primary-600);
+  --ds-on-primary: #ffffff;
+  --ds-primary-container: var(--ds-primary-500);
+  --ds-on-primary-container: #eeefff;
+  --ds-inverse-primary: #b4c5ff;
+  --ds-secondary: var(--ds-secondary-700);
+  --ds-on-secondary: #ffffff;
+  --ds-secondary-container: var(--ds-secondary-200);
+  --ds-on-secondary-container: var(--ds-secondary-800);
+  --ds-tertiary: var(--ds-tertiary-700);
+  --ds-on-tertiary: #ffffff;
+  --ds-tertiary-container: var(--ds-tertiary-500);
+  --ds-on-tertiary-container: #bdffdb;
+  --ds-error: #ba1a1a;
+  --ds-on-error: #ffffff;
+  --ds-error-container: #ffdad6;
+  --ds-on-error-container: #93000a;
+
+  --ds-primary-fixed: #dbe1ff;
+  --ds-primary-fixed-dim: #b4c5ff;
+  --ds-on-primary-fixed: #00174b;
+  --ds-on-primary-fixed-variant: #003ea8;
+  --ds-secondary-fixed: #dae2fd;
+  --ds-secondary-fixed-dim: #bec6e0;
+  --ds-on-secondary-fixed: #131b2e;
+  --ds-on-secondary-fixed-variant: #3f465c;
+  --ds-tertiary-fixed: #6ffbbe;
+  --ds-tertiary-fixed-dim: #4edea3;
+  --ds-on-tertiary-fixed: #002113;
+  --ds-on-tertiary-fixed-variant: #005236;
+
+  --ds-canvas: var(--ds-neutral-50);
+  --ds-brand: var(--ds-primary-500);
+  --ds-brand-hover: var(--ds-primary-600);
+  --ds-text-primary: #0f172a;
+  --ds-text-secondary: var(--ds-neutral-600);
+  --ds-text-muted: var(--ds-neutral-500);
+  --ds-border: var(--ds-neutral-200);
+  --ds-border-hover: var(--ds-neutral-300);
+  --ds-input: var(--ds-neutral-50);
+  --ds-success: #10b981;
+  --ds-success-bg: #ecfdf5;
+  --ds-success-text: #065f46;
+  --ds-info: #0284c7;
+  --ds-info-bg: #e0f2fe;
+  --ds-info-text: #0369a1;
+  --ds-warning: #d97706;
+  --ds-warning-bg: #fef3c7;
+  --ds-warning-text: #92400e;
+  --ds-danger: #e11d48;
+  --ds-danger-bg: #ffe4e6;
+  --ds-danger-text: #9f1239;
+
+  --ds-font-heading: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --ds-font-body: Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
+@theme {
+  --color-primary-50: var(--ds-primary-50);
+  --color-primary-100: var(--ds-primary-100);
+  --color-primary-200: var(--ds-primary-200);
+  --color-primary-300: var(--ds-primary-300);
+  --color-primary-400: var(--ds-primary-400);
+  --color-primary-500: var(--ds-primary-500);
+  --color-primary-600: var(--ds-primary-600);
+  --color-primary-700: var(--ds-primary-700);
+  --color-primary-800: var(--ds-primary-800);
+  --color-primary-900: var(--ds-primary-900);
+
+  --color-secondary-50: var(--ds-secondary-50);
+  --color-secondary-100: var(--ds-secondary-100);
+  --color-secondary-200: var(--ds-secondary-200);
+  --color-secondary-300: var(--ds-secondary-300);
+  --color-secondary-400: var(--ds-secondary-400);
+  --color-secondary-500: var(--ds-secondary-500);
+  --color-secondary-600: var(--ds-secondary-600);
+  --color-secondary-700: var(--ds-secondary-700);
+  --color-secondary-800: var(--ds-secondary-800);
+  --color-secondary-900: var(--ds-secondary-900);
+  --color-secondary-950: var(--ds-secondary-950);
+
+  --color-tertiary-50: var(--ds-tertiary-50);
+  --color-tertiary-100: var(--ds-tertiary-100);
+  --color-tertiary-200: var(--ds-tertiary-200);
+  --color-tertiary-300: var(--ds-tertiary-300);
+  --color-tertiary-400: var(--ds-tertiary-400);
+  --color-tertiary-500: var(--ds-tertiary-500);
+  --color-tertiary-600: var(--ds-tertiary-600);
+  --color-tertiary-700: var(--ds-tertiary-700);
+  --color-tertiary-800: var(--ds-tertiary-800);
+  --color-tertiary-900: var(--ds-tertiary-900);
+
+  --color-neutral-50: var(--ds-neutral-50);
+  --color-neutral-100: var(--ds-neutral-100);
+  --color-neutral-200: var(--ds-neutral-200);
+  --color-neutral-300: var(--ds-neutral-300);
+  --color-neutral-400: var(--ds-neutral-400);
+  --color-neutral-500: var(--ds-neutral-500);
+  --color-neutral-600: var(--ds-neutral-600);
+  --color-neutral-700: var(--ds-neutral-700);
+  --color-neutral-800: var(--ds-neutral-800);
+  --color-neutral-900: var(--ds-neutral-900);
+
+  --color-brand: var(--ds-brand);
+  --color-brand-hover: var(--ds-brand-hover);
+  --color-primary: var(--ds-primary);
+  --color-primary-container: var(--ds-primary-container);
+  --color-secondary: var(--ds-secondary);
+  --color-tertiary: var(--ds-tertiary);
+  --color-error: var(--ds-error);
+  --color-canvas: var(--ds-canvas);
+  --color-surface: var(--ds-surface);
+  --color-surface-container-lowest: var(--ds-surface-container-lowest);
+  --color-surface-container-low: var(--ds-surface-container-low);
+  --color-surface-container: var(--ds-surface-container);
+  --color-surface-container-high: var(--ds-surface-container-high);
+  --color-on-surface: var(--ds-on-surface);
+  --color-on-surface-variant: var(--ds-on-surface-variant);
+  --color-outline: var(--ds-outline);
+  --color-outline-variant: var(--ds-outline-variant);
+  --color-text-primary: var(--ds-text-primary);
+  --color-text-secondary: var(--ds-text-secondary);
+  --color-text-muted: var(--ds-text-muted);
+  --color-border: var(--ds-border);
+  --color-input: var(--ds-input);
+  --color-success: var(--ds-success);
+  --color-success-bg: var(--ds-success-bg);
+  --color-success-text: var(--ds-success-text);
+  --color-info: var(--ds-info);
+  --color-info-bg: var(--ds-info-bg);
+  --color-info-text: var(--ds-info-text);
+  --color-warning: var(--ds-warning);
+  --color-warning-bg: var(--ds-warning-bg);
+  --color-warning-text: var(--ds-warning-text);
+  --color-danger: var(--ds-danger);
+  --color-danger-bg: var(--ds-danger-bg);
+  --color-danger-text: var(--ds-danger-text);
+
+  --font-sans: var(--ds-font-body);
+  --font-heading: var(--ds-font-heading);
+
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-2xl: 1.5rem;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-width: 320px;
+  min-height: 100%;
+  background: var(--ds-canvas);
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  background: var(--ds-canvas);
+  color: var(--ds-text-primary);
+  font-family: var(--ds-font-body);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 2px solid var(--ds-brand);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: var(--ds-primary-fixed);
+  color: var(--ds-on-primary-fixed);
+}
