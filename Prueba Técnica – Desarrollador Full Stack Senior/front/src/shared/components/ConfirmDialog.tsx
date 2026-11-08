@@ -42,7 +42,7 @@ function DialogContent({ title, description, confirmLabel, cancelLabel = 'Cancel
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: reducedMotion ? 0 : 0.16 }}
-            className="fixed inset-0 m-0 h-dvh max-h-none w-full max-w-none overflow-auto bg-secondary-950/55 p-0 backdrop:bg-transparent"
+            className="fixed inset-0 m-0 h-dvh max-h-none w-full max-w-none overflow-auto bg-secondary-950/45 p-0 backdrop:bg-transparent"
         >
             <div
                 className="grid min-h-full place-items-center p-4"
@@ -55,16 +55,28 @@ function DialogContent({ title, description, confirmLabel, cancelLabel = 'Cancel
                     animate={{ scale: 1, y: 0 }}
                     exit={{ scale: reducedMotion ? 1 : 0.98 }}
                     transition={{ duration: reducedMotion ? 0 : 0.2, ease: 'easeOut' }}
-                    className="w-full max-w-md rounded-2xl border border-neutral-100 bg-white p-6 shadow-2xl"
+                    className="w-full max-w-[26rem] rounded-xl border border-neutral-100 bg-white p-4 shadow-2xl sm:p-5"
                 >
-                    <span aria-hidden="true" className={`mb-4 grid size-11 place-items-center rounded-xl ${destructive ? 'bg-danger-bg text-danger-text' : 'bg-primary-100 text-primary-700'}`}>
-                        {icon}
-                    </span>
-                    <h2 id={titleId} className="font-heading text-xl font-bold text-secondary-950">{title}</h2>
-                    <p id={descriptionId} className="mt-2 text-sm leading-relaxed text-secondary-700">{description}</p>
-                    <div className="mt-6 flex flex-wrap justify-end gap-2">
-                        <Button ref={cancelButton} variant="outline" disabled={!isPresent} onClick={onCancel}>{cancelLabel}</Button>
-                        <Button variant={destructive ? 'danger' : 'primary'} disabled={!isPresent} onClick={onConfirm}>{confirmLabel}</Button>
+                    <div className="flex items-start gap-3">
+                        <span aria-hidden="true" className={`grid size-8 shrink-0 place-items-center rounded-lg [&>svg]:size-4 ${destructive ? 'bg-danger-bg text-danger-text' : 'bg-primary-100 text-primary-700'}`}>
+                            {icon}
+                        </span>
+                        <div className="min-w-0 pt-0.5">
+                            <h2 id={titleId} className="font-heading text-base font-semibold wrap-anywhere text-secondary-950">{title}</h2>
+                            <p id={descriptionId} className="mt-1 text-sm leading-snug wrap-anywhere text-secondary-700">{description}</p>
+                        </div>
+                    </div>
+                    <div className="mt-4 flex flex-wrap justify-end gap-2">
+                        <Button ref={cancelButton} variant="custom" size="sm" disabled={!isPresent} onClick={onCancel}
+                            className="min-h-8! border-neutral-200! px-2.5! text-xs! text-secondary-800! hover:bg-neutral-50">
+                            {cancelLabel}
+                        </Button>
+                        <Button variant="custom" size="sm" disabled={!isPresent} onClick={onConfirm}
+                            className={`min-h-8! px-2.5! text-xs! ${destructive
+                                ? 'border-danger! text-danger-text! hover:bg-danger-bg'
+                                : 'border-primary-500! text-primary-700! hover:bg-primary-100'}`}>
+                            {confirmLabel}
+                        </Button>
                     </div>
                 </motion.div>
             </div>
