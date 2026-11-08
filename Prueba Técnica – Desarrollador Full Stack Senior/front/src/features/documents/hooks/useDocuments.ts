@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
 import { createDocument, loadWorkspaceDocuments } from '@/features/documents/api/documents.api'
+import { useDeleteDocument } from '@/features/documents/hooks/useDeleteDocument'
 import type { WorkspaceDocuments } from '@/features/documents/types/document.types'
 import { getProtectedApiErrorMessage } from '@/shared/api/getProtectedApiErrorMessage'
 
 export function useDocuments(workspaceId: number) {
     const [catalog, setCatalog] = useState<WorkspaceDocuments | null>(null)
     const [loadError, setLoadError] = useState<string | null>(null)
+    const { deletingId, deleteError, remove } = useDeleteDocument()
 
     useEffect(() => {
         const controller = new AbortController()
@@ -29,5 +31,14 @@ export function useDocuments(workspaceId: number) {
         })
     }
 
-    return { catalog, loadError, addDocument }
+    async function removeDocument(documentId: number) {
+        if (await remove(documentId)) {
+            setCatalog((current) => current && {
+                ...current,
+                documents: current.documents.filter(({ id }) => id !== documentId),
+            })
+        }
+    }
+
+    return { catalog, loadError, addDocument, removeDocument, deletingId, deleteError }
 }

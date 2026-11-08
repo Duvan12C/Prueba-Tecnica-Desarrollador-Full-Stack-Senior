@@ -18,6 +18,7 @@ export interface DocumentDetails extends DocumentListItem {
 export interface AccessibleDocument extends DocumentDetails {
     canEdit: boolean
     workspaceName: string | null
+    workspaceOwnerId: number | null
 }
 
 export interface CreateDocumentRequest {

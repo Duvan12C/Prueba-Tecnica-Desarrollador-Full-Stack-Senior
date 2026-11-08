@@ -25,6 +25,7 @@ export function useDocument(documentId: number) {
     }, [documentId])
 
     async function save(content: string): Promise<boolean> {
+        if (isSaving) return false
         setIsSaving(true)
         setSaveError(null)
         try {

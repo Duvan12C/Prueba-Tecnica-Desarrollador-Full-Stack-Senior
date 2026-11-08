@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Icon } from '@iconify/react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 import emptyIllustration from '@/assets/Empty-amico.svg'
+import ConfirmDeleteDocumentDialog from '@/features/documents/components/ConfirmDeleteDocumentDialog'
 import CreateDocumentDialog from '@/features/documents/components/CreateDocumentDialog'
 import { useDocuments } from '@/features/documents/hooks/useDocuments'
 import { getSessionUserId } from '@/features/auth/session/sessionToken'
@@ -11,6 +12,7 @@ import { useWorkspaceCapabilities } from '@/features/workspaces/hooks/useWorkspa
 import Button from '@/shared/components/Button'
 import Breadcrumbs from '@/shared/components/Breadcrumbs'
 import Card from '@/shared/components/Card'
+import CardActions from '@/shared/components/CardActions'
 import Input from '@/shared/components/Input'
 
 const dateFormat = new Intl.DateTimeFormat('es', { dateStyle: 'medium' })
@@ -23,7 +25,7 @@ function documentDate(document: DocumentListItem) {
 
 function WorkspaceDocuments({ workspaceId }: { workspaceId: number }) {
     const navigate = useNavigate()
-    const { catalog, loadError, addDocument } = useDocuments(workspaceId)
+    const { catalog, loadError, addDocument, removeDocument, deletingId, deleteError } = useDocuments(workspaceId)
     const { canCreateWorkspace, error: permissionError } = useWorkspaceCapabilities()
     const [searchParams, setSearchParams] = useSearchParams()
     const [query, setQuery] = useState('')
@@ -32,10 +34,11 @@ function WorkspaceDocuments({ workspaceId }: { workspaceId: number }) {
     const [order, setOrder] = useState('recent')
     const [view, setView] = useState<'grid' | 'list'>('grid')
     const [showCreateDialog, setShowCreateDialog] = useState(false)
+    const [documentToDelete, setDocumentToDelete] = useState<DocumentListItem | null>(null)
 
     const workspace = catalog?.workspace
     const isOwner = !!workspace && workspace.owner_user_id === getSessionUserId()
-    const canCreate = isOwner && canCreateWorkspace
+    const canManage = isOwner && canCreateWorkspace
     const invitationStep = searchParams.get('invitar')
     const isCatalogEmpty = catalog?.documents.length === 0
     const search = query.trim().toLocaleLowerCase()
@@ -72,13 +75,13 @@ function WorkspaceDocuments({ workspaceId }: { workspaceId: number }) {
                         <p className="mt-2 max-w-2xl text-sm wrap-anywhere text-secondary-700">{workspace.description}</p>
                     )}
                 </div>
-                {(canCreate || workspace?.member_summary) && (
+                {(canManage || workspace?.member_summary) && (
                     <div className="flex flex-wrap gap-2">
                         <Button variant="outline" onClick={() => navigate(`/workspaces/${workspaceId}/members`)}
                             startIcon={<Icon icon="tabler:users" width="19" />}>
                             Miembros
                         </Button>
-                        {canCreate && (
+                        {canManage && (
                             <>
                                 <Button variant="outline" onClick={() => setInvitationOpen(true)}
                                     startIcon={<Icon icon="tabler:user-plus" width="19" />}>
@@ -144,17 +147,19 @@ function WorkspaceDocuments({ workspaceId }: { workspaceId: number }) {
             )}
 
             {loadError && <p role="alert" className="rounded-xl bg-danger-bg p-4 text-sm text-danger-text">{loadError}</p>}
+            {deleteError && <p role="alert" className="rounded-xl bg-danger-bg p-4 text-sm text-danger-text">{deleteError}</p>}
+            {deletingId !== null && <p role="status" className="text-sm text-secondary-700">Eliminando documento…</p>}
             {!catalog && !loadError && <p role="status" className="text-sm text-secondary-700">Cargando documentos…</p>}
             {isCatalogEmpty && (
                 <Card className="flex min-h-96 flex-col items-center justify-center rounded-2xl border border-neutral-100 bg-white px-6 py-10 text-center">
                     <img src={emptyIllustration} alt="" className="mb-5 w-64 max-w-full sm:w-80" />
                     <h2 className="font-heading text-xl font-semibold text-secondary-950">Este espacio aún no tiene documentos disponibles</h2>
                     <p className="mt-2 max-w-sm text-sm text-secondary-700">
-                        {canCreate
+                        {canManage
                             ? 'Crea el primer documento para empezar a organizar el trabajo del equipo.'
                             : 'Aquí aparecerán los documentos de este espacio a los que tengas acceso.'}
                     </p>
-                    {canCreate && (
+                    {canManage && (
                         <Button className="mt-5" onClick={() => setShowCreateDialog(true)} startIcon={<Icon icon="solar:add-circle-linear" width="20" />}>
                             Crear mi primer documento
                         </Button>
@@ -167,7 +172,7 @@ function WorkspaceDocuments({ workspaceId }: { workspaceId: number }) {
                 </Card>
             )}
 
-            {canCreate && workspace && (invitationStep === 'nuevo' || invitationStep === '1') && (
+            {canManage && workspace && (invitationStep === 'nuevo' || invitationStep === '1') && (
                 <WorkspaceInvitationDialog
                     workspaceId={workspace.id}
                     workspaceName={workspace.name}
@@ -176,7 +181,7 @@ function WorkspaceDocuments({ workspaceId }: { workspaceId: number }) {
                 />
             )}
 
-            {showCreateDialog && canCreate && workspace && (
+            {showCreateDialog && canManage && workspace && (
                 <CreateDocumentDialog
                     workspaceName={workspace.name}
                     onDismiss={() => setShowCreateDialog(false)}
@@ -191,10 +196,10 @@ function WorkspaceDocuments({ workspaceId }: { workspaceId: number }) {
             {documents.length > 0 && (
                 <ul className={view === 'grid' ? 'grid gap-4 sm:grid-cols-2 xl:grid-cols-3' : 'grid gap-3'}>
                     {documents.map((document) => (
-                        <li key={document.id} className="min-w-0">
+                        <li key={document.id} className="relative min-w-0">
                             <Link to={`/document/${document.id}`} className="block h-full rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-primary-500">
-                                <Card className={`h-full rounded-xl border border-neutral-100 bg-white p-5 shadow-sm ${view === 'list' ? 'sm:flex sm:items-center sm:justify-between sm:gap-4' : ''}`}>
-                                    <div className="flex min-w-0 items-start gap-3">
+                                <Card className={`h-full rounded-xl border border-neutral-100 bg-white p-5 shadow-sm ${view === 'list' ? 'sm:flex sm:items-center sm:justify-between sm:gap-4' : ''} ${canManage && view === 'list' ? 'sm:pr-16' : ''}`}>
+                                    <div className={`flex min-w-0 items-start gap-3 ${canManage ? 'pr-10' : ''} ${view === 'list' ? 'sm:pr-0' : ''}`}>
                                         <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-primary-100 text-primary-700">
                                             <Icon icon="solar:document-text-linear" width="21" aria-hidden="true" />
                                         </span>
@@ -211,10 +216,29 @@ function WorkspaceDocuments({ workspaceId }: { workspaceId: number }) {
                                     </div>
                                 </Card>
                             </Link>
+                            {canManage && (
+                                <CardActions label={`Acciones de ${document.title}`} className="absolute right-3 top-3"
+                                    disabled={deletingId !== null}>
+                                    <Button variant="ghost" size="sm" fullWidth
+                                        className="justify-start! text-danger-text! hover:bg-danger-bg!"
+                                        startIcon={<Icon icon="tabler:trash" width="18" />}
+                                        onClick={() => setDocumentToDelete(document)}>
+                                        Eliminar
+                                    </Button>
+                                </CardActions>
+                            )}
                         </li>
                     ))}
                 </ul>
             )}
+            <ConfirmDeleteDocumentDialog
+                documentTitle={canManage ? documentToDelete?.title ?? null : null}
+                onCancel={() => setDocumentToDelete(null)}
+                onConfirm={() => {
+                    if (canManage && documentToDelete) void removeDocument(documentToDelete.id)
+                    setDocumentToDelete(null)
+                }}
+            />
         </section>
     )
 }

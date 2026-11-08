@@ -1,7 +1,11 @@
 import { useState } from 'react'
 import { Icon } from '@iconify/react'
-import { useBeforeUnload, useNavigate, useParams } from 'react-router'
+import { useBeforeUnload, useNavigate, useOutletContext, useParams } from 'react-router'
+import type { WorkspaceOutletContext } from '@/app/WorkspaceLayout'
+import { getSessionUserId } from '@/features/auth/session/sessionToken'
+import ConfirmDeleteDocumentDialog from '@/features/documents/components/ConfirmDeleteDocumentDialog'
 import DocumentEditor from '@/features/documents/components/DocumentEditor'
+import { useDeleteDocument } from '@/features/documents/hooks/useDeleteDocument'
 import { useDocument } from '@/features/documents/hooks/useDocument'
 import DocumentPermissionsDialog from '@/features/permissions/components/DocumentPermissionsDialog'
 import Breadcrumbs from '@/shared/components/Breadcrumbs'
@@ -10,15 +14,25 @@ import ConfirmDialog from '@/shared/components/ConfirmDialog'
 
 function OpenDocument({ documentId, readOnly }: { documentId: number; readOnly: boolean }) {
     const navigate = useNavigate()
+    const { workspaceCapabilities } = useOutletContext<WorkspaceOutletContext>()
     const { document, loadError, saveError, isSaving, save } = useDocument(documentId)
+    const { deletingId, deleteError, remove } = useDeleteDocument()
     const [draft, setDraft] = useState<string | null>(null)
     const [pendingPath, setPendingPath] = useState<string | null>(null)
     const [sharingOpen, setSharingOpen] = useState(false)
+    const [deleteOpen, setDeleteOpen] = useState(false)
     const isEditing = !!document?.canEdit && !readOnly
     const hasChanges = draft !== null && draft !== document?.content
+    const isDeleting = deletingId !== null
+    const isBusy = isSaving || isDeleting
+    const userId = getSessionUserId()
+    const canDelete = workspaceCapabilities.canCreateWorkspace
+        && userId !== null
+        && document?.permission === 'admin'
+        && document.workspaceOwnerId === userId
 
     useBeforeUnload((event) => {
-        if (hasChanges || isSaving) event.preventDefault()
+        if (hasChanges || isBusy) event.preventDefault()
     })
 
     function open(path: string) {
@@ -30,8 +44,14 @@ function OpenDocument({ documentId, readOnly }: { documentId: number; readOnly: 
     }
 
     async function handleSave() {
-        if (!isEditing || draft === null || isSaving || !hasChanges) return
+        if (!isEditing || draft === null || isBusy || !hasChanges) return
         if (await save(draft)) setDraft((current) => current === draft ? null : current)
+    }
+
+    async function handleDelete() {
+        setDeleteOpen(false)
+        if (!canDelete || !document || isBusy) return
+        if (await remove(documentId)) navigate(`/workspaces/${document.space_work_id}`, { replace: true })
     }
 
     if (loadError) {
@@ -55,7 +75,7 @@ function OpenDocument({ documentId, readOnly }: { documentId: number; readOnly: 
                         { label: 'Edición de documento' },
                     ] : [{ label: document.title }]),
                 ]}
-                linksDisabled={isSaving}
+                linksDisabled={isBusy}
                 onNavigate={open}
             />
             <header className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-neutral-100 bg-white p-4 sm:p-5">
@@ -69,34 +89,48 @@ function OpenDocument({ documentId, readOnly }: { documentId: number; readOnly: 
                     </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                    <Button variant="outline" disabled={isSaving} onClick={() => open(`/document/${documentId}/history`)}
+                    <Button variant="outline" disabled={isBusy} onClick={() => open(`/document/${documentId}/history`)}
                         startIcon={<Icon icon="tabler:history" width="18" />}>
                         Historial
                     </Button>
                     {document.permission === 'admin' && (
-                        <Button variant="outline" disabled={isSaving} onClick={() => setSharingOpen(true)}
+                        <Button variant="outline" disabled={isBusy} onClick={() => setSharingOpen(true)}
                             startIcon={<Icon icon="tabler:share" width="18" />}>
                             Compartir
                         </Button>
                     )}
+                    {canDelete && (
+                        <Button variant="outline" disabled={isBusy} loading={isDeleting} loadingText="Eliminando…"
+                            className="text-danger-text! hover:bg-danger-bg!" onClick={() => setDeleteOpen(true)}
+                            startIcon={<Icon icon="tabler:trash" width="18" />}>
+                            Eliminar documento
+                        </Button>
+                    )}
                     {isEditing && (
-                        <Button onClick={handleSave} disabled={!hasChanges} loading={isSaving} loadingText="Guardando…"
+                        <Button onClick={handleSave} disabled={!hasChanges || isDeleting} loading={isSaving} loadingText="Guardando…"
                             startIcon={<Icon icon="tabler:device-floppy" width="18" />}>
                             Guardar versión
                         </Button>
                     )}
                     {readOnly && document.canEdit && (
-                        <Button onClick={() => open(`/document/${documentId}`)} startIcon={<Icon icon="tabler:pencil" width="18" />}>
+                        <Button disabled={isBusy} onClick={() => open(`/document/${documentId}`)} startIcon={<Icon icon="tabler:pencil" width="18" />}>
                             Editar documento
                         </Button>
                     )}
                 </div>
             </header>
             {saveError && <p role="alert" className="rounded-xl bg-danger-bg p-4 text-sm text-danger-text">{saveError}</p>}
-            <DocumentEditor content={document.content} editable={isEditing} disabled={isSaving} onChange={isEditing ? setDraft : undefined} />
+            {deleteError && <p role="alert" className="rounded-xl bg-danger-bg p-4 text-sm text-danger-text">{deleteError}</p>}
+            <DocumentEditor content={document.content} editable={isEditing} disabled={isBusy} onChange={isEditing ? setDraft : undefined} />
             {sharingOpen && document.permission === 'admin' && (
                 <DocumentPermissionsDialog documentId={documentId} documentTitle={document.title} onClose={() => setSharingOpen(false)} />
             )}
+            <ConfirmDeleteDocumentDialog
+                documentTitle={deleteOpen && canDelete ? document.title : null}
+                hasChanges={hasChanges}
+                onCancel={() => setDeleteOpen(false)}
+                onConfirm={handleDelete}
+            />
             <ConfirmDialog
                 open={pendingPath !== null}
                 title="¿Salir sin guardar?"

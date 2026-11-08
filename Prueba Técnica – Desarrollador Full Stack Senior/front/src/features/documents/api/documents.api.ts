@@ -34,6 +34,7 @@ export async function getDocument(id: number, signal: AbortSignal): Promise<Acce
         ...document,
         canEdit: document.permission === 'edit' || document.permission === 'admin',
         workspaceName: workspace?.name ?? null,
+        workspaceOwnerId: workspace?.owner_user_id ?? null,
     }
 }
 
@@ -41,4 +42,9 @@ export async function saveDocumentVersion(id: number, content: string): Promise<
     const { data } = await apiClient.put<ApiResponse<DocumentVersion>>(`/documents/${id}`, { content })
     if (!data.success || !data.data) throw new Error(data.message)
     return data.data
+}
+
+export async function deleteDocument(id: number): Promise<void> {
+    const { data } = await apiClient.delete<ApiResponse<null>>(`/documents/${id}`)
+    if (!data.success) throw new Error(data.message)
 }
