@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { Icon } from '@iconify/react'
 import { motion, useReducedMotion } from 'motion/react'
-import { NavLink, Outlet, useNavigate } from 'react-router'
+import { NavLink, Outlet } from 'react-router'
 import logo from '@/assets/docspace-imagotipo-horizontal-oscuro.svg'
 import mark from '@/assets/docspace-isotipo-oscuro.svg'
-import { clearAccessToken } from '@/shared/api/sessionToken'
+import { signOut } from '@/features/auth/session/sessionLifecycle'
 import Button from '@/shared/components/Button'
 
 function Sidebar({
@@ -88,7 +88,6 @@ function Sidebar({
 }
 
 export default function WorkspaceLayout() {
-  const navigate = useNavigate()
   const reducedMotion = useReducedMotion()
   const drawer = useRef<HTMLDialogElement>(null)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -104,11 +103,6 @@ export default function WorkspaceLayout() {
     return () => desktop.removeEventListener('change', closeOnDesktop)
   }, [])
 
-  function logout() {
-    clearAccessToken()
-    navigate('/login', { replace: true })
-  }
-
   return (
     <div className="min-h-dvh bg-neutral-50 md:flex">
       <motion.aside
@@ -117,7 +111,7 @@ export default function WorkspaceLayout() {
         transition={reducedMotion ? { duration: 0 } : { type: 'spring', bounce: sidebarCollapsed ? 0 : 0.3, duration: 0.45 }}
         className="sticky top-0 hidden h-dvh shrink-0 overflow-clip md:block"
       >
-        <Sidebar collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed((collapsed) => !collapsed)} onLogout={logout} />
+        <Sidebar collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed((collapsed) => !collapsed)} onLogout={signOut} />
       </motion.aside>
 
       <div className="min-w-0 flex-1">
@@ -183,7 +177,7 @@ export default function WorkspaceLayout() {
           >
             <Icon icon="solar:close-circle-linear" width="22" aria-hidden="true" />
           </Button>
-          <Sidebar onNavigate={() => setMenuOpen(false)} onLogout={logout} />
+          <Sidebar onNavigate={() => setMenuOpen(false)} onLogout={signOut} />
         </motion.div>
       </dialog>
     </div>

@@ -8,6 +8,7 @@ from app.core.config import settings
 
 # Registrar todos los modelos
 import app.modules.audit.models
+import app.modules.auth.models
 import app.modules.documents.model
 import app.modules.invitations.models
 import app.modules.permissions.models

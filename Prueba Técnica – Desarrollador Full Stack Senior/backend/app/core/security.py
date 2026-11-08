@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 
 import jwt
 from pwdlib import PasswordHash
@@ -17,13 +17,10 @@ def verify_password(password: str, hashed_password: str) -> bool:
     return password_hasher.verify(password, hashed_password)
 
 
-def create_access_token(user_id: int) -> str:
-    expires_at = datetime.now(timezone.utc) + timedelta(
-        minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
-    )
-
+def create_access_token(user_id: int, session_id: str, expires_at: datetime) -> str:
     payload = {
         "sub": str(user_id),
+        "sid": session_id,
         "exp": expires_at
     }
 

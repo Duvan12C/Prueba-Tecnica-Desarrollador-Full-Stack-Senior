@@ -1,4 +1,5 @@
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
+import { useSyncExternalStore } from 'react'
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router'
 import WorkspaceLayout from '@/app/WorkspaceLayout'
 import AuthLayout from '@/features/auth/layouts/AuthLayout'
@@ -7,17 +8,21 @@ import ForgotPasswordPage from '@/features/auth/pages/ForgotPasswordPage'
 import LoginPage from '@/features/auth/pages/LoginPage'
 import DashboardPage from '@/features/workspaces/pages/DashboardPage'
 import HomeDocumentPage from '@/features/documents/pages/HomeDocumentPage'
-import { getAccessToken } from '@/shared/api/sessionToken'
+import { useSessionActivity } from '@/features/auth/hooks/useSessionActivity'
+import { getSessionId, subscribeToSession } from '@/features/auth/session/sessionToken'
 
 function ProtectedWorkspace() {
-  return getAccessToken() ? <WorkspaceLayout /> : <Navigate to="/login" replace />
+  const sessionId = useSyncExternalStore(subscribeToSession, getSessionId)
+  return sessionId ? <WorkspaceLayout /> : <Navigate to="/login" replace />
 }
 
 function GuestLogin() {
-  return getAccessToken() ? <Navigate to="/dashboard" replace /> : <LoginPage />
+  const sessionId = useSyncExternalStore(subscribeToSession, getSessionId)
+  return sessionId ? <Navigate to="/dashboard" replace /> : <LoginPage />
 }
 
 function AuthRoutes() {
+  useSessionActivity()
   const location = useLocation()
   const reducedMotion = useReducedMotion()
 

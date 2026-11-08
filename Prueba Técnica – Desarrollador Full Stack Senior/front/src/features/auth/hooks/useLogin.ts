@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import axios from 'axios'
 import { login } from '@/features/auth/api/auth.api'
-import { saveAccessToken } from '@/shared/api/sessionToken'
+import { saveSession } from '@/features/auth/session/sessionToken'
 import type { ApiErrorResponse } from '@/shared/api/api.types'
 import type { LoginCredentials } from '@/features/auth/types/auth.types'
 
@@ -17,7 +17,7 @@ export function useLogin() {
 
     try {
       const token = await login(credentials)
-      saveAccessToken(token.access_token)
+      saveSession(token)
       setSuccessMessage('Inicio de sesión exitoso')
       return token
     } catch (error: unknown) {

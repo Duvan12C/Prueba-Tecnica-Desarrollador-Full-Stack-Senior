@@ -79,11 +79,16 @@ def user_factory(api):
 
 
 @pytest.fixture
-def auth_headers():
-    from app.core.security import create_access_token
+def auth_headers(api):
+    from app.modules.auth.repository import AuthRepository
+    from app.modules.auth.service import AuthService
+
+    _, test_sessions = api
 
     def make(user: User) -> dict[str, str]:
-        return {"Authorization": f"Bearer {create_access_token(user.id)}"}
+        with test_sessions() as db:
+            token, _ = AuthService(AuthRepository(db)).start_session(user.id)
+        return {"Authorization": f"Bearer {token.access_token}"}
 
     return make
 

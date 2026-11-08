@@ -6,6 +6,9 @@ export interface LoginCredentials {
 export interface AuthToken {
   access_token: string
   token_type: string
+  session_id: string
+  access_expires_at: number
+  idle_expires_at: number
 }
 
 export interface SignUpCredentials {

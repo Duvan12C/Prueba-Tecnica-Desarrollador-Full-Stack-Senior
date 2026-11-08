@@ -8,3 +8,14 @@ class LoginRequest(BaseModel):
 class TokenResponse(BaseModel):
     access_token: str = Field(description="Token JWT para enviar en Authorization: Bearer")
     token_type: str = Field(default="bearer", description="Esquema de autenticación del token")
+    session_id: str
+    access_expires_at: int
+    idle_expires_at: int
+
+
+class SessionRequest(BaseModel):
+    session_id: str = Field(pattern=r"^[0-9a-f]{32}$")
+
+
+class RefreshRequest(SessionRequest):
+    active: bool = False

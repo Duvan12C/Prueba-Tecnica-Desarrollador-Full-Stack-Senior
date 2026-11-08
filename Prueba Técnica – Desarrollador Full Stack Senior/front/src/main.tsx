@@ -2,6 +2,9 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import '@/index.css'
 import App from '@/app/App'
+import { installSessionInterceptors } from '@/features/auth/session/sessionInterceptors'
+
+installSessionInterceptors()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
