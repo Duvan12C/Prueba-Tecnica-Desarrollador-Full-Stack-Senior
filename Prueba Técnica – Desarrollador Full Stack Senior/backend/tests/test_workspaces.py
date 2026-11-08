@@ -20,6 +20,8 @@ def test_workspace_creation_permission(api, user_factory, auth_headers, role, ca
         workspace = created.json()["data"]
         assert workspace["name"] == "Equipo de Producto"
         assert workspace["description"] is None
+        assert workspace["icon_key"] == "folder"
+        assert workspace["color_key"] == "blue"
         assert client.get("/space_work", headers=headers).json()["data"] == [workspace]
 
 
@@ -29,3 +31,28 @@ def test_workspace_rejects_invalid_name(api, user_factory, auth_headers, name):
     headers = auth_headers(user_factory("manager@example.com", "Gestor"))
     response = client.post("/space_work/create", headers=headers, json={"name": name})
     assert response.status_code == 422
+
+
+def test_workspace_persists_appearance(api, user_factory, auth_headers):
+    client, _ = api
+    headers = auth_headers(user_factory("manager@example.com", "Gestor"))
+    response = client.post(
+        "/space_work/create",
+        headers=headers,
+        json={"name": "Proyecto", "icon_key": "rocket", "color_key": "green"},
+    )
+
+    assert response.status_code == 201
+    workspace = response.json()["data"]
+    assert (workspace["icon_key"], workspace["color_key"]) == ("rocket", "green")
+    assert client.get("/space_work", headers=headers).json()["data"] == [workspace]
+
+
+@pytest.mark.parametrize("field", ["icon_key", "color_key"])
+def test_workspace_rejects_unknown_appearance_keys(api, user_factory, auth_headers, field):
+    client, _ = api
+    headers = auth_headers(user_factory("manager@example.com", "Gestor"))
+    response = client.post("/space_work/create", headers=headers, json={"name": "Proyecto", field: "unknown"})
+
+    assert response.status_code == 422
+    assert client.get("/space_work", headers=headers).json()["data"] == []

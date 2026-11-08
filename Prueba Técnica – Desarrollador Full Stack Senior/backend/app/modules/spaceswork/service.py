@@ -24,6 +24,8 @@ class SpaceWorkService:
         space_work = SpaceWork(
             name=data.name,
             description=data.description,
+            icon_key=data.icon_key.value,
+            color_key=data.color_key.value,
             owner_user_id=owner_user_id
         )
 
