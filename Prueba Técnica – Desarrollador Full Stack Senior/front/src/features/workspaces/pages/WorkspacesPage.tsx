@@ -1,6 +1,7 @@
 import { Icon } from '@iconify/react'
 import { Link, useNavigate } from 'react-router'
 import { getSessionUserId } from '@/features/auth/session/sessionToken'
+import WorkspaceIcon from '@/features/workspaces/components/WorkspaceIcon'
 import { useWorkspaceCapabilities } from '@/features/workspaces/hooks/useWorkspaceCapabilities'
 import { useWorkspaces } from '@/features/workspaces/hooks/useWorkspaces'
 import Button from '@/shared/components/Button'
@@ -54,9 +55,7 @@ export default function WorkspacesPage() {
                             <Link to={`/workspaces/${workspace.id}`} className="block h-full rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-primary-500">
                                 <Card className="flex h-full flex-col rounded-2xl border border-neutral-100 bg-white p-5 shadow-sm hover:border-primary-300 motion-safe:transition-colors">
                                     <div className="flex items-start justify-between gap-3">
-                                        <span className="grid size-11 place-items-center rounded-xl bg-primary-100 text-primary-700">
-                                            <Icon icon="solar:folder-with-files-linear" width="23" aria-hidden="true" />
-                                        </span>
+                                        <WorkspaceIcon icon_key={workspace.icon_key} color_key={workspace.color_key} />
                                         <span className="rounded-full bg-neutral-50 px-2.5 py-1 text-xs font-medium text-secondary-700">
                                             {workspace.owner_user_id === userId ? 'Propio' : 'Compartido contigo'}
                                         </span>

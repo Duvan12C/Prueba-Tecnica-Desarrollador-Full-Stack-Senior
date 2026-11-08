@@ -1,9 +1,11 @@
 import { useState, type FormEvent } from 'react'
 import { Icon } from '@iconify/react'
 import { useNavigate } from 'react-router'
+import WorkspaceAppearancePicker from '@/features/workspaces/components/WorkspaceAppearancePicker'
 import WorkspacePreview from '@/features/workspaces/components/WorkspacePreview'
 import { useCreateWorkspace } from '@/features/workspaces/hooks/useCreateWorkspace'
 import { useWorkspaceCapabilities } from '@/features/workspaces/hooks/useWorkspaceCapabilities'
+import type { WorkspaceAppearance } from '@/features/workspaces/types/workspace.types'
 import Breadcrumbs from '@/shared/components/Breadcrumbs'
 import Button from '@/shared/components/Button'
 import Card from '@/shared/components/Card'
@@ -17,6 +19,7 @@ export default function CreateWorkspacePage() {
     const { submit, isSaving, error: saveError } = useCreateWorkspace()
     const [name, setName] = useState('')
     const [description, setDescription] = useState('')
+    const [appearance, setAppearance] = useState<WorkspaceAppearance>({ icon_key: 'folder', color_key: 'blue' })
     const trimmedName = name.trim()
     const trimmedDescription = description.trim()
 
@@ -24,7 +27,7 @@ export default function CreateWorkspacePage() {
         event.preventDefault()
         if (isSaving || !canCreateWorkspace || !trimmedName || trimmedName.length > MAX_NAME_LENGTH) return
 
-        const workspace = await submit({ name: trimmedName, description: trimmedDescription || null })
+        const workspace = await submit({ name: trimmedName, description: trimmedDescription || null, ...appearance })
         if (workspace) navigate(`/workspaces/${workspace.id}`, { replace: true })
     }
 
@@ -64,6 +67,7 @@ export default function CreateWorkspacePage() {
                                 </div>
                             </div>
                             <div className="space-y-5">
+                                <WorkspaceAppearancePicker appearance={appearance} onChange={setAppearance} disabled={isSaving} />
                                 <div>
                                     <label htmlFor="workspace-name" className="mb-2 block text-sm font-semibold text-secondary-950">
                                         Nombre del espacio <span className="text-danger" aria-hidden="true">*</span>
@@ -96,7 +100,7 @@ export default function CreateWorkspacePage() {
                             </Button>
                         </div>
                     </form>
-                    <WorkspacePreview name={trimmedName} description={trimmedDescription} />
+                    <WorkspacePreview name={trimmedName} description={trimmedDescription} appearance={appearance} />
                 </div>
             )}
             {!canCreateWorkspace && !isLoading && (
