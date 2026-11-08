@@ -18,6 +18,7 @@ class DocumentSaveRequest(BaseModel):
     title: str | None = Field(default=None, min_length=1, max_length=255, description="Título nuevo opcional")
     content: str = Field(description="Contenido que se guardará como una versión nueva")
     change_summary: str | None = Field(default=None, max_length=500, description="Resumen del cambio")
+    base_version: int | None = Field(default=None, gt=0, description="Versión que el cliente editó")
 
 
 class DocumentPermissionRequest(BaseModel):

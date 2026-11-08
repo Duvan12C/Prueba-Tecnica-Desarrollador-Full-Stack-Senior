@@ -7,6 +7,7 @@ from app.modules.spaceswork.router import router as spaceswork_router
 from app.modules.invitations.router import router as invitations_router
 from app.modules.documents.router import router as documents_router
 from app.modules.audit.router import router as audit_router
+from app.modules.collaboration.router import router as collaboration_router
 
 
 app = FastAPI(
@@ -40,5 +41,6 @@ app.include_router(spaceswork_router)
 app.include_router(invitations_router)
 app.include_router(documents_router)
 app.include_router(audit_router)
+app.include_router(collaboration_router)
 
 register_exception_handlers(app)

@@ -2,6 +2,7 @@ import json
 from datetime import datetime, timezone
 
 from sqlalchemy import and_, exists, false, or_, select, true
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.modules.audit.models import AuditLog
@@ -212,11 +213,15 @@ class DocumentRepository:
         change_summary: str | None,
         restored_from_version_id: int | None = None,
         title: str | None = None,
+        expected_version: int | None = None,
     ) -> DocumentVersion:
+        document_id = document.id
         try:
-            latest = self.latest_version(document.id)
+            latest = self.latest_version(document_id)
             if latest is None:
                 raise ConflictError("El documento no tiene una versión inicial")
+            if expected_version is not None and latest.version_number != expected_version:
+                raise ConflictError("El documento cambió desde la versión que editaste")
 
             old_title = document.title
             if title is not None:
@@ -248,6 +253,13 @@ class DocumentRepository:
             self.db.commit()
             self.db.refresh(version)
             return version
+        except IntegrityError as error:
+            self.db.rollback()
+            if expected_version is not None:
+                current = self.latest_version(document_id)
+                if current and current.version_number != expected_version:
+                    raise ConflictError("El documento cambió desde la versión que editaste") from error
+            raise
         except Exception:
             self.db.rollback()
             raise

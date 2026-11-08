@@ -8,7 +8,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, event, select
 from sqlalchemy.orm import sessionmaker
 
-from app.core.database import Base, get_db
+from app.core.database import Base, get_db, get_session_factory
 from app.main import app
 from app.modules.permissions.models import Permission
 from app.modules.users.models import Role, User
@@ -46,6 +46,7 @@ def api() -> Iterator[tuple[TestClient, sessionmaker]]:
             yield db
 
     app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_session_factory] = lambda: test_sessions
     try:
         with TestClient(app) as client:
             yield client, test_sessions

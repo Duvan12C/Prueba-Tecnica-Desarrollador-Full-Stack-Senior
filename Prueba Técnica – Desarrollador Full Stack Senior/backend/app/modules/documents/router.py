@@ -1,8 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
+from starlette.concurrency import run_in_threadpool
 
 from app.core.database import get_db
 from app.core.dependencies import get_current_user
+from app.modules.collaboration.hub import collaboration_hub
 from app.modules.documents.repository import DocumentRepository
 from app.modules.documents.schemas import (
     DocumentCreateRequest,
@@ -124,15 +126,18 @@ def get_document(
     summary="Guardar nueva versión",
     description="Guarda el contenido y crea una versión inmutable nueva. Requiere permiso edit o admin.",
 )
-def save_document(
+async def save_document(
     document_id: int,
     data: DocumentSaveRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     try:
-        version = build_service(db).save(document_id, data, current_user.id)
-        return ApiResponse[DocumentVersionResponse](success=True, message="Nueva versión guardada", data=version)
+        async with collaboration_hub.writing(document_id):
+            version = await run_in_threadpool(build_service(db).save, document_id, data, current_user.id)
+            result = DocumentVersionResponse.model_validate(version)
+            collaboration_hub.notify(document_id)
+        return ApiResponse[DocumentVersionResponse](success=True, message="Nueva versión guardada", data=result)
     except LookupError as error:
         raise HTTPException(status_code=404, detail=str(error)) from error
     except PermissionError as error:
@@ -191,15 +196,18 @@ def compare_versions(
     summary="Restaurar versión",
     description="Copia el contenido de una versión anterior en una nueva versión; no modifica el historial existente.",
 )
-def restore_version(
+async def restore_version(
     document_id: int,
     version_number: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     try:
-        version = build_service(db).restore(document_id, version_number, current_user.id)
-        return ApiResponse[DocumentVersionResponse](success=True, message="Versión restaurada como una nueva versión", data=version)
+        async with collaboration_hub.writing(document_id):
+            version = await run_in_threadpool(build_service(db).restore, document_id, version_number, current_user.id)
+            result = DocumentVersionResponse.model_validate(version)
+            collaboration_hub.notify(document_id)
+        return ApiResponse[DocumentVersionResponse](success=True, message="Versión restaurada como una nueva versión", data=result)
     except LookupError as error:
         raise HTTPException(status_code=404, detail=str(error)) from error
     except PermissionError as error:

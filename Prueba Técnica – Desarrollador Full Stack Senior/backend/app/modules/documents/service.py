@@ -44,6 +44,7 @@ class DocumentService:
             user_id=user_id,
             change_summary=data.change_summary,
             title=data.title,
+            expected_version=data.base_version,
         )
 
     def restore(self, document_id: int, version_number: int, user_id: int):
