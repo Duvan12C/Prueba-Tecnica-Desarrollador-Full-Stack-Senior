@@ -1,11 +1,12 @@
 import { useState, type FormEvent } from 'react'
 import { Icon } from '@iconify/react'
-import { Link } from 'react-router'
+import { Link, useNavigate } from 'react-router'
 import { useLogin } from '@/features/auth/hooks/useLogin'
 import Button from '@/shared/components/Button'
 import Input from '@/shared/components/Input'
 
 function LoginPage() {
+    const navigate = useNavigate()
     const [showPassword, setShowPassword] = useState(false)
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
@@ -13,7 +14,8 @@ function LoginPage() {
 
     async function handleSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault()
-        await submitLogin({ email, password })
+        const session = await submitLogin({ email, password })
+        if (session) navigate('/dashboard', { replace: true })
     }
 
     return (
