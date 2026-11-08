@@ -61,6 +61,11 @@ export default function DocumentEditor({ content, editable = false, disabled = f
         editor?.setEditable(editable && !disabled, false)
     }, [editor, editable, disabled])
 
+    useEffect(() => {
+        if (!editor || serializeEditorContent(editor.getHTML()) === content) return
+        editor.chain().setContent(getEditorContent(content), { emitUpdate: false }).setMeta('addToHistory', false).run()
+    }, [editor, content])
+
     const controls = useEditorState({
         editor,
         selector: ({ editor }) => actions.map(({ active, enabled }) => ({

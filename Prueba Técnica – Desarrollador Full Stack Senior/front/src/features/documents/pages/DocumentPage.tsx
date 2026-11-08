@@ -3,6 +3,9 @@ import { Icon } from '@iconify/react'
 import { useBeforeUnload, useNavigate, useOutletContext, useParams } from 'react-router'
 import type { WorkspaceOutletContext } from '@/app/WorkspaceLayout'
 import { getSessionUserId } from '@/features/auth/session/sessionToken'
+import CollaborationConflict from '@/features/collaboration/components/CollaborationConflict'
+import CollaborationPresence from '@/features/collaboration/components/CollaborationPresence'
+import { useDocumentCollaboration } from '@/features/collaboration/hooks/useDocumentCollaboration'
 import ConfirmDeleteDocumentDialog from '@/features/documents/components/ConfirmDeleteDocumentDialog'
 import DocumentEditor from '@/features/documents/components/DocumentEditor'
 import { useDeleteDocument } from '@/features/documents/hooks/useDeleteDocument'
@@ -15,21 +18,28 @@ import ConfirmDialog from '@/shared/components/ConfirmDialog'
 function OpenDocument({ documentId, readOnly }: { documentId: number; readOnly: boolean }) {
     const navigate = useNavigate()
     const { workspaceCapabilities } = useOutletContext<WorkspaceOutletContext>()
-    const { document, loadError, saveError, isSaving, save } = useDocument(documentId)
+    const { document, loadError } = useDocument(documentId)
+    const collaboration = useDocumentCollaboration(documentId, document !== null, readOnly)
     const { deletingId, deleteError, remove } = useDeleteDocument()
-    const [draft, setDraft] = useState<string | null>(null)
     const [pendingPath, setPendingPath] = useState<string | null>(null)
     const [sharingOpen, setSharingOpen] = useState(false)
     const [deleteOpen, setDeleteOpen] = useState(false)
-    const isEditing = !!document?.canEdit && !readOnly
-    const hasChanges = draft !== null && draft !== document?.content
+    const permission = collaboration.snapshot?.permission ?? document?.permission
+    const canEdit = permission === 'admin' || permission === 'edit'
+    const isEditing = canEdit && !readOnly
+    const isConnected = collaboration.status === 'connected'
+    const accessDenied = collaboration.status === 'denied'
+    const hasChanges = collaboration.draft !== null
+    const isSaving = collaboration.publishing !== null
+    const isSyncing = isConnected && collaboration.pending !== null
     const isDeleting = deletingId !== null
-    const isBusy = isSaving || isDeleting
+    const isBusy = isSaving || isSyncing || isDeleting
     const userId = getSessionUserId()
     const canDelete = workspaceCapabilities.canCreateWorkspace
         && userId !== null
-        && document?.permission === 'admin'
-        && document.workspaceOwnerId === userId
+        && !accessDenied
+        && permission === 'admin'
+        && document?.workspaceOwnerId === userId
 
     useBeforeUnload((event) => {
         if (hasChanges || isBusy) event.preventDefault()
@@ -41,11 +51,6 @@ function OpenDocument({ documentId, readOnly }: { documentId: number; readOnly: 
             return
         }
         navigate(path)
-    }
-
-    async function handleSave() {
-        if (!isEditing || draft === null || isBusy || !hasChanges) return
-        if (await save(draft)) setDraft((current) => current === draft ? null : current)
     }
 
     async function handleDelete() {
@@ -63,6 +68,11 @@ function OpenDocument({ documentId, readOnly }: { documentId: number; readOnly: 
         )
     }
     if (!document) return <p role="status" className="text-sm text-secondary-700">Abriendo documento…</p>
+    const versionStatus = isSaving ? 'Guardando versión…'
+        : isSyncing ? 'Sincronizando…'
+            : hasChanges ? 'Cambios locales'
+                : collaboration.snapshot?.has_unpublished_changes ? 'Borrador sincronizado'
+                    : isEditing ? 'Guardada' : 'Solo lectura'
 
     return (
         <section aria-labelledby="document-title" className="mx-auto max-w-6xl space-y-4">
@@ -84,8 +94,8 @@ function OpenDocument({ documentId, readOnly }: { documentId: number; readOnly: 
                         {document.title}
                     </h1>
                     <p className="mt-1 text-xs text-secondary-700" role="status">
-                        Versión {document.current_version_number}
-                        {hasChanges ? ' · Cambios sin guardar' : isEditing ? ' · Guardada' : ' · Solo lectura'}
+                        Versión {collaboration.snapshot?.version ?? document.current_version_number}
+                        {' · '}{versionStatus}
                     </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -93,7 +103,7 @@ function OpenDocument({ documentId, readOnly }: { documentId: number; readOnly: 
                         startIcon={<Icon icon="tabler:history" width="18" />}>
                         Historial
                     </Button>
-                    {document.permission === 'admin' && (
+                    {permission === 'admin' && !accessDenied && (
                         <Button variant="outline" disabled={isBusy} onClick={() => setSharingOpen(true)}
                             startIcon={<Icon icon="tabler:share" width="18" />}>
                             Compartir
@@ -106,23 +116,48 @@ function OpenDocument({ documentId, readOnly }: { documentId: number; readOnly: 
                             Eliminar documento
                         </Button>
                     )}
-                    {isEditing && (
-                        <Button onClick={handleSave} disabled={!hasChanges || isDeleting} loading={isSaving} loadingText="Guardando…"
+                    {isEditing && !accessDenied && (
+                        <Button onClick={collaboration.saveVersion} disabled={!collaboration.canPublish || isDeleting} loading={isSaving} loadingText="Guardando…"
                             startIcon={<Icon icon="tabler:device-floppy" width="18" />}>
                             Guardar versión
                         </Button>
                     )}
-                    {readOnly && document.canEdit && (
+                    {readOnly && canEdit && !accessDenied && (
                         <Button disabled={isBusy} onClick={() => open(`/document/${documentId}`)} startIcon={<Icon icon="tabler:pencil" width="18" />}>
                             Editar documento
                         </Button>
                     )}
                 </div>
             </header>
-            {saveError && <p role="alert" className="rounded-xl bg-danger-bg p-4 text-sm text-danger-text">{saveError}</p>}
+            <CollaborationPresence status={collaboration.status} participants={collaboration.participants} />
+            {collaboration.activity && (
+                <p role="status" className="rounded-xl border border-primary-200 bg-primary-100 px-3 py-2 text-sm text-primary-800">
+                    {collaboration.activity.status === 'saving'
+                        ? `${collaboration.activity.name} está guardando una versión…`
+                        : `${collaboration.activity.name} guardó la versión ${collaboration.activity.version}.`}
+                </p>
+            )}
+            {collaboration.error && (
+                <div className="flex flex-wrap items-center gap-3 rounded-xl bg-danger-bg p-4 text-sm text-danger-text">
+                    <p role="alert">{collaboration.error}</p>
+                    {collaboration.syncFailed && collaboration.canSync && (
+                        <Button size="sm" variant="outline" onClick={collaboration.syncDraft}>Reintentar sincronización</Button>
+                    )}
+                </div>
+            )}
             {deleteError && <p role="alert" className="rounded-xl bg-danger-bg p-4 text-sm text-danger-text">{deleteError}</p>}
-            <DocumentEditor content={document.content} editable={isEditing} disabled={isBusy} onChange={isEditing ? setDraft : undefined} />
-            {sharingOpen && document.permission === 'admin' && (
+            {collaboration.conflict && collaboration.snapshot && !accessDenied && (
+                <CollaborationConflict snapshot={collaboration.snapshot} canApply={isConnected && isEditing && !isBusy}
+                    onApply={collaboration.applyDraft} onDiscard={collaboration.discardDraft} />
+            )}
+            {(!accessDenied || hasChanges) && (
+                <DocumentEditor
+                    content={collaboration.draft ?? collaboration.snapshot?.content ?? document.content}
+                    editable={isEditing && !accessDenied} disabled={isDeleting || !isConnected}
+                    onChange={isEditing ? collaboration.updateDraft : undefined}
+                />
+            )}
+            {sharingOpen && permission === 'admin' && !accessDenied && (
                 <DocumentPermissionsDialog documentId={documentId} documentTitle={document.title} onClose={() => setSharingOpen(false)} />
             )}
             <ConfirmDeleteDocumentDialog
@@ -134,7 +169,7 @@ function OpenDocument({ documentId, readOnly }: { documentId: number; readOnly: 
             <ConfirmDialog
                 open={pendingPath !== null}
                 title="¿Salir sin guardar?"
-                description="Perderás los cambios que todavía no has guardado. La última versión guardada seguirá disponible."
+                description="Los cambios locales sin sincronizar se perderán. El borrador compartido seguirá disponible."
                 confirmLabel="Salir sin guardar"
                 icon={<Icon icon="tabler:alert-triangle" width="22" />}
                 destructive

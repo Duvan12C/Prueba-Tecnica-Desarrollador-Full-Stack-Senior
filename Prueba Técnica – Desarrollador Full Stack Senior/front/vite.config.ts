@@ -10,6 +10,7 @@ export default defineConfig(({ mode }) => ({
       "/api": {
         target: loadEnv(mode, process.cwd()).VITE_API_URL || "http://127.0.0.1:8000",
         changeOrigin: true,
+        ws: true,
         rewrite: (path) => path.replace(/^\/api/, ""),
       },
     },

@@ -1,7 +1,6 @@
 import { apiClient } from '@/shared/api/client'
 import type { ApiResponse } from '@/shared/api/api.types'
 import type { AccessibleDocument, CreateDocumentRequest, DocumentDetails, DocumentListItem, WorkspaceDocuments } from '@/features/documents/types/document.types'
-import type { DocumentVersion } from '@/features/versions/types/version.types'
 import { listWorkspaces } from '@/features/workspaces/api/workspaces.api'
 
 export async function loadWorkspaceDocuments(workspaceId: number, signal: AbortSignal): Promise<WorkspaceDocuments> {
@@ -36,12 +35,6 @@ export async function getDocument(id: number, signal: AbortSignal): Promise<Acce
         workspaceName: workspace?.name ?? null,
         workspaceOwnerId: workspace?.owner_user_id ?? null,
     }
-}
-
-export async function saveDocumentVersion(id: number, content: string): Promise<DocumentVersion> {
-    const { data } = await apiClient.put<ApiResponse<DocumentVersion>>(`/documents/${id}`, { content })
-    if (!data.success || !data.data) throw new Error(data.message)
-    return data.data
 }
 
 export async function deleteDocument(id: number): Promise<void> {
