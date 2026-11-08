@@ -1,7 +1,10 @@
-from sqlalchemy import select, true
+from datetime import date, datetime, time, timedelta
+
+from sqlalchemy import and_, func, select, true
 from sqlalchemy.orm import Session
 
 from app.modules.audit.models import AuditLog
+from app.modules.documents.model import Document
 from app.modules.spaceswork.models import SpaceWork
 from app.modules.users.models import Role, User
 
@@ -30,14 +33,47 @@ class AuditRepository:
         *,
         action: str | None,
         entity_type: str | None,
+        start_date: date | None,
+        end_date: date | None,
         limit: int,
         offset: int,
-    ) -> list[AuditLog]:
-        statement = select(AuditLog).where(AuditLog.space_work_id == space_work_id)
+    ) -> tuple[list[tuple[AuditLog, str | None, str | None]], int]:
+        filters = [AuditLog.space_work_id == space_work_id]
         if action:
-            statement = statement.where(AuditLog.action == action)
+            filters.append(AuditLog.action == action)
         if entity_type:
-            statement = statement.where(AuditLog.entity_type == entity_type)
-        statement = statement.order_by(AuditLog.created_at.desc(), AuditLog.id.desc())
-        statement = statement.offset(offset).limit(limit)
-        return list(self.db.scalars(statement).all())
+            filters.append(AuditLog.entity_type == entity_type)
+        if start_date is not None:
+            filters.append(AuditLog.created_at >= datetime.combine(start_date, time.min))
+        if end_date is not None and end_date < date.max:
+            day_after_end = end_date + timedelta(days=1)
+            filters.append(AuditLog.created_at < datetime.combine(day_after_end, time.min))
+
+        statement = (
+            select(AuditLog, User.name, func.coalesce(Document.title, SpaceWork.name))
+            .select_from(AuditLog)
+            .outerjoin(User, User.id == AuditLog.user_id)
+            .outerjoin(
+                Document,
+                and_(
+                    AuditLog.entity_type == "document",
+                    Document.id == AuditLog.entity_id,
+                    Document.space_work_id == AuditLog.space_work_id,
+                ),
+            )
+            .outerjoin(
+                SpaceWork,
+                and_(
+                    AuditLog.entity_type == "space_work",
+                    SpaceWork.id == AuditLog.entity_id,
+                    SpaceWork.id == AuditLog.space_work_id,
+                ),
+            )
+            .where(*filters)
+            .order_by(AuditLog.created_at.desc(), AuditLog.id.desc())
+            .offset(offset)
+            .limit(limit)
+        )
+        total = self.db.scalar(select(func.count()).select_from(AuditLog).where(*filters)) or 0
+        rows = self.db.execute(statement)
+        return [(event, actor_name, resource_name) for event, actor_name, resource_name in rows], total

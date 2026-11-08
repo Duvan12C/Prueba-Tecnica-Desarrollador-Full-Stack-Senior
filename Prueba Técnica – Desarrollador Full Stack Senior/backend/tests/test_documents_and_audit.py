@@ -183,6 +183,83 @@ def test_archive_workspace_blocks_access_and_preserves_history(api, user_factory
         assert [version.content for version in versions] == ["initial"]
 
 
+def test_audit_lists_names_and_paginates_inclusive_date_range(api, user_factory, auth_headers):
+    client, test_sessions = api
+    manager = user_factory("manager@example.com", "Gestor")
+    other_manager = user_factory("other@example.com", "Gestor")
+    space = create_space(test_sessions, manager, "Team")
+    other_space = create_space(test_sessions, other_manager, "Other team")
+    document_id = create_document(client, manager, auth_headers, space.id)
+    foreign_id = create_document(client, other_manager, auth_headers, other_space.id)
+
+    with test_sessions() as db:
+        timestamps = [
+            datetime(2020, 1, 9, 23, 59, 59),
+            datetime(2020, 1, 10),
+            datetime(2020, 1, 10, 23, 59, 59),
+            datetime(2020, 1, 11),
+        ]
+        events = [
+            AuditLog(
+                user_id=manager.id,
+                space_work_id=space.id,
+                action="document.updated",
+                entity_type="document",
+                entity_id=document_id,
+                created_at=timestamp,
+            )
+            for timestamp in timestamps
+        ]
+        unresolved_resource = AuditLog(
+            space_work_id=space.id,
+            action="document.updated",
+            entity_type="document",
+            entity_id=foreign_id,
+            created_at=timestamps[2],
+        )
+        db.add_all([
+            *events,
+            unresolved_resource,
+            AuditLog(
+                user_id=other_manager.id,
+                space_work_id=other_space.id,
+                action="document.updated",
+                entity_type="document",
+                entity_id=foreign_id,
+                created_at=timestamps[2],
+            ),
+        ])
+        db.commit()
+        expected_ids = [unresolved_resource.id, events[2].id, events[1].id]
+
+    params = {
+        "space_work_id": space.id,
+        "start_date": "2020-01-10",
+        "end_date": "2020-01-10",
+        "action": "document.updated",
+        "limit": 2,
+    }
+    headers = auth_headers(manager)
+    first = client.get("/audit", headers=headers, params=params)
+    assert first.status_code == 200, first.text
+    first_page = first.json()
+    assert first_page["success"] is True
+    assert first_page["pagination"] == {"total": 3, "limit": 2, "offset": 0}
+    assert [entry["id"] for entry in first_page["data"]] == expected_ids[:2]
+    unresolved, edit = first_page["data"]
+    assert unresolved["actor_name"] is None and unresolved["resource_name"] is None
+    assert edit["actor_name"] == manager.name
+    assert edit["resource_name"] == "Test document"
+
+    second = client.get("/audit", headers=headers, params={**params, "offset": 2}).json()
+    assert second["pagination"] == {"total": 3, "limit": 2, "offset": 2}
+    assert [entry["id"] for entry in second["data"]] == expected_ids[2:]
+    empty = client.get("/audit", headers=headers, params={**params, "offset": 4}).json()
+    assert empty["pagination"]["total"] == 3 and empty["data"] == []
+    invalid = client.get("/audit", headers=headers, params={**params, "start_date": "2020-01-11"})
+    assert invalid.status_code == 400 and invalid.json()["code"] == "bad_request"
+
+
 def test_invitation_acceptance_adds_member_and_is_audited(api, user_factory, auth_headers, add_member):
     client, test_sessions = api
     manager = user_factory("invite-owner@example.com", "Gestor")

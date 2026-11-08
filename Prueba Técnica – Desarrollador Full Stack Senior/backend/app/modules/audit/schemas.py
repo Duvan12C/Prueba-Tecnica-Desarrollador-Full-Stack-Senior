@@ -14,5 +14,7 @@ class AuditLogResponse(BaseModel):
     old_values: str | None
     new_values: str | None
     created_at: datetime
+    actor_name: str | None = None
+    resource_name: str | None = None
 
     model_config = ConfigDict(from_attributes=True)

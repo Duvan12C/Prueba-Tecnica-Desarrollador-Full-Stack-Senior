@@ -1,7 +1,8 @@
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { lazy, Suspense, useSyncExternalStore } from 'react'
-import { BrowserRouter, Navigate, Route, Routes, useLocation, useSearchParams } from 'react-router'
-import WorkspaceLayout from '@/app/WorkspaceLayout'
+import { BrowserRouter, Navigate, Route, Routes, useLocation, useOutletContext, useSearchParams } from 'react-router'
+import WorkspaceLayout, { type WorkspaceOutletContext } from '@/app/WorkspaceLayout'
+import AuditPage from '@/features/audit/pages/AuditPage'
 import AuthLayout from '@/features/auth/layouts/AuthLayout'
 import CreatePage from '@/features/auth/pages/CreatePage'
 import ForgotPasswordPage from '@/features/auth/pages/ForgotPasswordPage'
@@ -23,6 +24,13 @@ const DocumentHistoryPage = lazy(() => import('@/features/versions/pages/Documen
 function ProtectedWorkspace() {
   const sessionId = useSyncExternalStore(subscribeToSession, getSessionId)
   return sessionId ? <WorkspaceLayout /> : <Navigate to="/login" replace />
+}
+
+function ManagerAudit() {
+  const { workspaceCapabilities: { canCreateWorkspace, isLoading, error } } = useOutletContext<WorkspaceOutletContext>()
+  if (error) return <p role="alert" className="rounded-xl bg-danger-bg p-4 text-sm text-danger-text">{error}</p>
+  if (isLoading) return <p role="status" className="text-sm text-secondary-700">Comprobando permisos…</p>
+  return canCreateWorkspace ? <AuditPage /> : <Navigate to="/dashboard" replace />
 }
 
 function GuestLogin() {
@@ -63,6 +71,7 @@ function AuthRoutes() {
           <Route element={<ProtectedWorkspace />}>
             <Route path="/invitations" element={<ReceivedInvitationsPage />} />
             <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/audit" element={<ManagerAudit />} />
             <Route path="/workspaces" element={<WorkspacesPage />} />
             <Route path="/workspaces/:workspaceId" element={<WorkspaceDocumentsPage />} />
             <Route path="/workspaces/:workspaceId/members" element={<WorkspaceMembersPage />} />

@@ -6,15 +6,26 @@ import logo from '@/assets/docspace-imagotipo-horizontal-oscuro.svg'
 import mark from '@/assets/docspace-isotipo-oscuro.svg'
 import { signOut } from '@/features/auth/session/sessionLifecycle'
 import { useReceivedInvitations } from '@/features/invitations/hooks/useReceivedInvitations'
+import { useWorkspaceCapabilities } from '@/features/workspaces/hooks/useWorkspaceCapabilities'
 import Button from '@/shared/components/Button'
+
+export interface WorkspaceOutletContext {
+  workspaceCapabilities: ReturnType<typeof useWorkspaceCapabilities>
+}
+
+function sidebarLinkClass(collapsed: boolean, active: boolean) {
+  return `flex items-center rounded-lg py-2.5 text-sm font-medium motion-safe:transition-colors ${collapsed ? 'justify-center' : 'gap-3 px-3'} ${active ? 'bg-primary-600 text-white shadow-md' : 'hover:bg-white/10 hover:text-white'}`
+}
 
 function Sidebar({
   collapsed = false,
+  showAudit,
   onToggle,
   onNavigate,
   onLogout,
 }: {
   collapsed?: boolean
+  showAudit: boolean
   onToggle?: () => void
   onNavigate?: () => void
   onLogout: () => void
@@ -48,10 +59,7 @@ function Sidebar({
           end
           title={collapsed ? 'Inicio' : undefined}
           onClick={onNavigate}
-          className={({ isActive }) =>
-            `flex items-center rounded-lg py-2.5 text-sm font-medium motion-safe:transition-colors ${collapsed ? 'justify-center' : 'gap-3 px-3'} ${isActive ? 'bg-primary-600 text-white shadow-md' : 'hover:bg-white/10 hover:text-white'
-            }`
-          }
+          className={({ isActive }) => sidebarLinkClass(collapsed, isActive)}
         >
           <Icon icon="solar:home-2-linear" width="20" className="shrink-0" aria-hidden="true" />
           <span className={collapsed ? 'sr-only' : 'whitespace-nowrap'}>Inicio</span>
@@ -60,14 +68,22 @@ function Sidebar({
           to="/workspaces"
           title={collapsed ? 'Espacios de trabajo' : undefined}
           onClick={onNavigate}
-          className={({ isActive }) =>
-            `flex items-center rounded-lg py-2.5 text-sm font-medium motion-safe:transition-colors ${collapsed ? 'justify-center' : 'gap-3 px-3'} ${isActive || inDocument ? 'bg-primary-600 text-white shadow-md' : 'hover:bg-white/10 hover:text-white'
-            }`
-          }
+          className={({ isActive }) => sidebarLinkClass(collapsed, isActive || !!inDocument)}
         >
           <Icon icon="solar:folder-with-files-linear" width="20" className="shrink-0" aria-hidden="true" />
           <span className={collapsed ? 'sr-only' : 'whitespace-nowrap'}>Espacios de trabajo</span>
         </NavLink>
+        {showAudit && (
+          <NavLink
+            to="/audit"
+            title={collapsed ? 'Auditoría' : undefined}
+            onClick={onNavigate}
+            className={({ isActive }) => sidebarLinkClass(collapsed, isActive)}
+          >
+            <Icon icon="tabler:clipboard-list" width="20" className="shrink-0" aria-hidden="true" />
+            <span className={collapsed ? 'sr-only' : 'whitespace-nowrap'}>Auditoría</span>
+          </NavLink>
+        )}
       </nav>
       <div className="border-t border-white/10 p-3">
         <Button
@@ -90,6 +106,8 @@ function Sidebar({
 
 export default function WorkspaceLayout() {
   const inbox = useReceivedInvitations()
+  const workspaceCapabilities = useWorkspaceCapabilities()
+  const showAudit = workspaceCapabilities.canCreateWorkspace
   const invitationCount = inbox.invitations?.length ?? 0
   const invitationLabel = invitationCount
     ? `Invitaciones, ${invitationCount} ${invitationCount === 1 ? 'pendiente' : 'pendientes'}`
@@ -117,7 +135,8 @@ export default function WorkspaceLayout() {
         transition={reducedMotion ? { duration: 0 } : { type: 'spring', bounce: sidebarCollapsed ? 0 : 0.3, duration: 0.45 }}
         className="sticky top-0 hidden h-dvh shrink-0 overflow-clip md:block"
       >
-        <Sidebar collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed((collapsed) => !collapsed)} onLogout={signOut} />
+        <Sidebar collapsed={sidebarCollapsed} showAudit={showAudit}
+          onToggle={() => setSidebarCollapsed((collapsed) => !collapsed)} onLogout={signOut} />
       </motion.aside>
 
       <div className="min-w-0 flex-1">
@@ -153,7 +172,7 @@ export default function WorkspaceLayout() {
         </header>
 
         <main className="p-4 md:p-6">
-          <Outlet context={inbox} />
+          <Outlet context={{ ...inbox, workspaceCapabilities }} />
         </main>
       </div>
 
@@ -194,7 +213,7 @@ export default function WorkspaceLayout() {
           >
             <Icon icon="solar:close-circle-linear" width="22" aria-hidden="true" />
           </Button>
-          <Sidebar onNavigate={() => setMenuOpen(false)} onLogout={signOut} />
+          <Sidebar showAudit={showAudit} onNavigate={() => setMenuOpen(false)} onLogout={signOut} />
         </motion.div>
       </dialog>
     </div>
