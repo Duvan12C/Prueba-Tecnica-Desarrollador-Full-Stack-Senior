@@ -8,12 +8,17 @@ export async function loadWorkspaceDocuments(workspaceId: number, signal: AbortS
     const workspace = spaces.find(({ id }) => id === workspaceId)
     if (!workspace) throw new Error('Este espacio de trabajo no está disponible.')
 
+    const documents = await listWorkspaceDocuments(workspaceId, signal)
+    return { workspace, documents }
+}
+
+export async function listWorkspaceDocuments(workspaceId: number, signal: AbortSignal): Promise<DocumentListItem[]> {
     const { data } = await apiClient.get<ApiResponse<DocumentListItem[]>>('/documents', {
         params: { space_work_id: workspaceId },
         signal,
     })
     if (!data.success || !data.data) throw new Error(data.message)
-    return { workspace, documents: data.data }
+    return data.data
 }
 
 export async function createDocument(request: CreateDocumentRequest): Promise<DocumentListItem> {

@@ -1,8 +1,6 @@
-import { useCurrentUserProfile } from '@/features/auth/hooks/useCurrentUserProfile'
+import type { useCurrentUserProfile } from '@/features/auth/hooks/useCurrentUserProfile'
 
-export default function CurrentUserSummary() {
-  const { profile, error } = useCurrentUserProfile()
-
+export default function CurrentUserSummary({ profile, error }: ReturnType<typeof useCurrentUserProfile>) {
   return (
     <div className="min-w-0 max-w-64 border-l border-neutral-200 pl-2 sm:pl-3" role="group" aria-label="Cuenta activa">
       {profile ? (

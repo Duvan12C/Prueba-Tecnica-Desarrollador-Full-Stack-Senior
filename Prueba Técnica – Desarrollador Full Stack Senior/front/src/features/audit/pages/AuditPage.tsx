@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useSearchParams } from 'react-router'
 import AuditDateFilters from '@/features/audit/components/AuditDateFilters'
 import AuditEvent from '@/features/audit/components/AuditEvent'
 import { useAuditLog } from '@/features/audit/hooks/useAuditLog'
@@ -39,12 +40,13 @@ function WorkspaceAuditLog({ workspaceId, dates }: { workspaceId: number; dates:
 }
 
 export default function AuditPage() {
+    const [params] = useSearchParams()
     const { workspaces, error } = useWorkspaces()
-    const [selectedId, setSelectedId] = useState<number | null>(null)
+    const [selectedId, setSelectedId] = useState(() => Number(params.get('espacio')))
     const [dates, setDates] = useState<AuditDateRange>({})
     const userId = getSessionUserId()
     const ownedWorkspaces = workspaces?.filter(({ owner_user_id }) => owner_user_id === userId)
-    const workspaceId = selectedId ?? ownedWorkspaces?.[0]?.id
+    const workspaceId = ownedWorkspaces?.find(({ id }) => id === selectedId)?.id ?? ownedWorkspaces?.[0]?.id
 
     return (
         <section aria-labelledby="audit-title" className="mx-auto max-w-6xl space-y-5">

@@ -9,7 +9,6 @@ import LoginPage from '@/features/auth/pages/LoginPage'
 import AcceptInvitationPage from '@/features/invitations/pages/AcceptInvitationPage'
 import ReceivedInvitationsPage from '@/features/invitations/pages/ReceivedInvitationsPage'
 import { getInvitationReturnPath } from '@/features/invitations/utils/invitationLink'
-import DashboardPage from '@/features/workspaces/pages/DashboardPage'
 import CreateWorkspacePage from '@/features/workspaces/pages/CreateWorkspacePage'
 import WorkspacesPage from '@/features/workspaces/pages/WorkspacesPage'
 import WorkspaceMembersPage from '@/features/workspaces/pages/WorkspaceMembersPage'
@@ -19,6 +18,7 @@ import { getSessionId, subscribeToSession } from '@/features/auth/session/sessio
 
 const DocumentPage = lazy(() => import('@/features/documents/pages/DocumentPage'))
 const DocumentHistoryPage = lazy(() => import('@/features/versions/pages/DocumentHistoryPage'))
+const DashboardPage = lazy(() => import('@/features/dashboard/pages/DashboardPage'))
 
 function ProtectedWorkspace() {
   const sessionId = useSyncExternalStore(subscribeToSession, getSessionId)
@@ -68,7 +68,9 @@ function AuthRoutes() {
           <Route path="/invitations/accept" element={<AcceptInvitationPage />} />
           <Route element={<ProtectedWorkspace />}>
             <Route path="/invitations" element={<ReceivedInvitationsPage />} />
-            <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/dashboard" element={
+              <Suspense fallback={<p role="status">Cargando inicio…</p>}><DashboardPage /></Suspense>
+            } />
             <Route path="/audit" element={<ManagerAudit />} />
             <Route path="/workspaces" element={<WorkspacesPage />} />
             <Route path="/workspaces/:workspaceId" element={<WorkspaceDocumentsPage />} />

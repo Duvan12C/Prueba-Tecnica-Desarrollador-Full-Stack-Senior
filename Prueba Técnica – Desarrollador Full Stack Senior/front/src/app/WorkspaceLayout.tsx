@@ -5,13 +5,16 @@ import { NavLink, Outlet, useMatch } from 'react-router'
 import logo from '@/assets/docspace-imagotipo-horizontal-oscuro.svg'
 import mark from '@/assets/docspace-isotipo-oscuro.svg'
 import CurrentUserSummary from '@/features/auth/components/CurrentUserSummary'
+import { useCurrentUserProfile } from '@/features/auth/hooks/useCurrentUserProfile'
+import type { CurrentUserProfile } from '@/features/auth/types/auth.types'
 import { signOut } from '@/features/auth/session/sessionLifecycle'
-import { useReceivedInvitations } from '@/features/invitations/hooks/useReceivedInvitations'
+import { useReceivedInvitations, type InvitationInbox } from '@/features/invitations/hooks/useReceivedInvitations'
 import { useWorkspaceCapabilities } from '@/features/workspaces/hooks/useWorkspaceCapabilities'
 import Button from '@/shared/components/Button'
 
-export interface WorkspaceOutletContext {
+export interface WorkspaceOutletContext extends InvitationInbox {
   workspaceCapabilities: ReturnType<typeof useWorkspaceCapabilities>
+  profile: CurrentUserProfile | null
 }
 
 function sidebarLinkClass(collapsed: boolean, active: boolean) {
@@ -107,6 +110,7 @@ function Sidebar({
 
 export default function WorkspaceLayout() {
   const inbox = useReceivedInvitations()
+  const profileState = useCurrentUserProfile()
   const workspaceCapabilities = useWorkspaceCapabilities()
   const showAudit = workspaceCapabilities.canCreateWorkspace
   const invitationCount = inbox.invitations?.length ?? 0
@@ -171,12 +175,12 @@ export default function WorkspaceLayout() {
                 </span>
               )}
             </NavLink>
-            <CurrentUserSummary />
+            <CurrentUserSummary {...profileState} />
           </div>
         </header>
 
         <main className="p-4 md:p-6">
-          <Outlet context={{ ...inbox, workspaceCapabilities }} />
+          <Outlet context={{ ...inbox, workspaceCapabilities, profile: profileState.profile }} />
         </main>
       </div>
 
