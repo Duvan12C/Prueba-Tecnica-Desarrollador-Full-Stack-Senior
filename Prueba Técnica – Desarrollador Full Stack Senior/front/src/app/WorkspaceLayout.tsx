@@ -56,7 +56,6 @@ function Sidebar({
         </NavLink>
         <NavLink
           to="/document"
-          end
           title={collapsed ? 'Documentos' : undefined}
           onClick={onNavigate}
           className={({ isActive }) =>

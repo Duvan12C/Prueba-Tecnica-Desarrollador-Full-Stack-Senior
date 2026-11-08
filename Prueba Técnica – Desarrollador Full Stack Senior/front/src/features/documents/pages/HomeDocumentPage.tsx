@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Icon } from '@iconify/react'
-import { useNavigate, useSearchParams } from 'react-router'
+import { Link, useNavigate, useSearchParams } from 'react-router'
 import emptyIllustration from '@/assets/Empty-amico.svg'
 import CreateDocumentDialog from '@/features/documents/components/CreateDocumentDialog'
 import { useDocuments } from '@/features/documents/hooks/useDocuments'
@@ -150,24 +150,26 @@ export default function HomeDocumentPage() {
                 <ul className={view === 'grid' ? 'grid gap-4 sm:grid-cols-2 xl:grid-cols-3' : 'grid gap-3'}>
                     {documents.map((document) => (
                         <li key={document.id} className="min-w-0">
-                            <Card className={`h-full rounded-xl border border-neutral-100 bg-white p-5 shadow-sm ${view === 'list' ? 'sm:flex sm:items-center sm:justify-between sm:gap-4' : ''}`}>
-                                <div className="flex min-w-0 items-start gap-3">
-                                    <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-primary-100 text-primary-700">
-                                        <Icon icon="solar:document-text-linear" width="21" aria-hidden="true" />
-                                    </span>
-                                    <div className="min-w-0">
-                                        <p className="break-words text-xs font-medium text-primary-700">{document.spaceName}</p>
-                                        <h2 className="mt-1 break-words font-heading font-semibold text-secondary-950">{document.title}</h2>
+                            <Link to={`/document/${document.id}`} className="block h-full rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-primary-500">
+                                <Card className={`h-full rounded-xl border border-neutral-100 bg-white p-5 shadow-sm ${view === 'list' ? 'sm:flex sm:items-center sm:justify-between sm:gap-4' : ''}`}>
+                                    <div className="flex min-w-0 items-start gap-3">
+                                        <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-primary-100 text-primary-700">
+                                            <Icon icon="solar:document-text-linear" width="21" aria-hidden="true" />
+                                        </span>
+                                        <div className="min-w-0">
+                                            <p className="break-words text-xs font-medium text-primary-700">{document.spaceName}</p>
+                                            <h2 className="mt-1 break-words font-heading font-semibold text-secondary-950">{document.title}</h2>
+                                        </div>
                                     </div>
-                                </div>
-                                <div className={`flex flex-wrap items-center gap-2 text-xs text-secondary-700 ${view === 'grid' ? 'mt-5 border-t border-neutral-100 pt-3' : 'mt-3 sm:mt-0'}`}>
-                                    <Icon icon="solar:clock-circle-linear" width="15" aria-hidden="true" />
-                                    <span>{dateFormat.format(new Date(document.updated_at ?? document.created_at))}</span>
-                                    <span className="rounded-full bg-primary-100 px-2 py-1 text-primary-700">
-                                        Versión {document.current_version_number}
-                                    </span>
-                                </div>
-                            </Card>
+                                    <div className={`flex flex-wrap items-center gap-2 text-xs text-secondary-700 ${view === 'grid' ? 'mt-5 border-t border-neutral-100 pt-3' : 'mt-3 sm:mt-0'}`}>
+                                        <Icon icon="solar:clock-circle-linear" width="15" aria-hidden="true" />
+                                        <span>{dateFormat.format(new Date(document.updated_at ?? document.created_at))}</span>
+                                        <span className="rounded-full bg-primary-100 px-2 py-1 text-primary-700">
+                                            Versión {document.current_version_number}
+                                        </span>
+                                    </div>
+                                </Card>
+                            </Link>
                         </li>
                     ))}
                 </ul>

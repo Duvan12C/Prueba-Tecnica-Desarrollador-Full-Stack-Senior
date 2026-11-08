@@ -1,5 +1,5 @@
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
-import { useSyncExternalStore } from 'react'
+import { lazy, Suspense, useSyncExternalStore } from 'react'
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router'
 import WorkspaceLayout from '@/app/WorkspaceLayout'
 import AuthLayout from '@/features/auth/layouts/AuthLayout'
@@ -11,6 +11,9 @@ import CreateWorkspacePage from '@/features/workspaces/pages/CreateWorkspacePage
 import HomeDocumentPage from '@/features/documents/pages/HomeDocumentPage'
 import { useSessionActivity } from '@/features/auth/hooks/useSessionActivity'
 import { getSessionId, subscribeToSession } from '@/features/auth/session/sessionToken'
+
+const DocumentPage = lazy(() => import('@/features/documents/pages/DocumentPage'))
+const DocumentHistoryPage = lazy(() => import('@/features/versions/pages/DocumentHistoryPage'))
 
 function ProtectedWorkspace() {
   const sessionId = useSyncExternalStore(subscribeToSession, getSessionId)
@@ -45,6 +48,12 @@ function AuthRoutes() {
           <Route element={<ProtectedWorkspace />}>
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/document" element={<HomeDocumentPage />} />
+            <Route path="/document/:documentId" element={
+              <Suspense fallback={<p role="status">Abriendo documento…</p>}><DocumentPage /></Suspense>
+            } />
+            <Route path="/document/:documentId/history" element={
+              <Suspense fallback={<p role="status">Cargando historial…</p>}><DocumentHistoryPage /></Suspense>
+            } />
             <Route path="/workspaces/new" element={<CreateWorkspacePage />} />
           </Route>
           <Route path="*" element={<Navigate to="/login" replace />} />

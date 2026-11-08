@@ -9,6 +9,14 @@ export interface DocumentListItem {
     current_version_number: number
 }
 
+export interface DocumentDetails extends DocumentListItem {
+    content: string
+}
+
+export interface AccessibleDocument extends DocumentDetails {
+    canEdit: boolean
+}
+
 export interface CreateDocumentRequest {
     space_work_id: number
     title: string
