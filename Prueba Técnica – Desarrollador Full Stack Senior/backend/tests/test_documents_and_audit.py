@@ -77,6 +77,7 @@ def test_read_permission_cannot_edit_but_edit_creates_new_immutable_version(
 
     read_response = client.get(f"/documents/{document_id}", headers=auth_headers(collaborator))
     assert read_response.status_code == 200
+    assert read_response.json()["data"]["permission"] == "read"
     denied_edit = client.put(
         f"/documents/{document_id}",
         headers=auth_headers(collaborator),
@@ -90,6 +91,7 @@ def test_read_permission_cannot_edit_but_edit_creates_new_immutable_version(
         json={"permission": "edit"},
     )
     assert permission_response.status_code == 200
+    assert client.get(f"/documents/{document_id}", headers=auth_headers(collaborator)).json()["data"]["permission"] == "edit"
     saved = client.put(
         f"/documents/{document_id}",
         headers=auth_headers(collaborator),
@@ -106,6 +108,79 @@ def test_read_permission_cannot_edit_but_edit_creates_new_immutable_version(
         ).all())
     assert [version.content for version in versions] == ["version one", "version two"]
     assert [version.version_number for version in versions] == [1, 2]
+
+
+def test_document_permissions_and_member_previews_respect_workspace_access(api, user_factory, auth_headers, add_member):
+    client, test_sessions = api
+    owner = user_factory("owner@example.com", "Gestor")
+    admin = user_factory("admin@example.com")
+    reader = user_factory("reader@example.com")
+    member = user_factory("member@example.com")
+    outsider = user_factory("outsider@example.com")
+    space = create_space(test_sessions, owner, "Team")
+    for user in (admin, reader, member):
+        add_member(space.id, user.id)
+    doc_id = create_document(client, owner, auth_headers, space.id)
+    path = f"/documents/{doc_id}/permissions"
+    owner_headers = auth_headers(owner)
+    for user, permission in ((admin, "admin"), (reader, "read")):
+        assert client.put(f"{path}/{user.id}", headers=owner_headers, json={"permission": permission}).status_code == 200
+
+    for actor in (owner, admin):
+        response = client.get(path, headers=auth_headers(actor))
+        assert response.status_code == 200, response.text
+        permissions = {row["user_id"]: row["permission"] for row in response.json()["data"]}
+        assert permissions == {owner.id: "admin", admin.id: "admin", reader.id: "read", member.id: None}
+        summary = client.get("/space_work", headers=auth_headers(actor)).json()["data"][0]["member_summary"]
+        assert summary["count"] == 4
+        assert len(summary["names"]) == 3
+        assert summary["names"][0] == owner.name
+    for actor, expected_status in ((reader, 403), (member, 404), (outsider, 404)):
+        assert client.get(path, headers=auth_headers(actor)).status_code == expected_status
+        assert client.get(f"/space_work/{space.id}/members", headers=auth_headers(actor)).status_code == 404
+    assert client.get("/space_work", headers=auth_headers(reader)).json()["data"][0]["member_summary"] is None
+
+    admin_headers = auth_headers(admin)
+    assert client.put(f"{path}/{member.id}", headers=admin_headers, json={"permission": "edit"}).status_code == 200
+    assert client.delete(f"{path}/{member.id}", headers=admin_headers).status_code == 200
+    assert client.get(f"/documents/{doc_id}", headers=auth_headers(member)).status_code == 404
+
+
+def test_archive_workspace_blocks_access_and_preserves_history(api, user_factory, auth_headers, add_member):
+    client, test_sessions = api
+    owner = user_factory("owner@example.com", "Gestor")
+    member = user_factory("member@example.com")
+    owner_headers = auth_headers(owner)
+    member_headers = auth_headers(member)
+    space = create_space(test_sessions, owner, "Team")
+    add_member(space.id, member.id)
+    doc_id = create_document(client, owner, auth_headers, space.id)
+    doc_path = f"/documents/{doc_id}"
+    space_path = f"/space_work/{space.id}"
+    assert client.put(f"{doc_path}/permissions/{member.id}", headers=owner_headers, json={"permission": "admin"}).status_code == 200
+    assert client.delete(space_path, headers=member_headers).status_code == 403
+    for _ in range(2):
+        assert client.delete(space_path, headers=owner_headers).status_code == 200
+
+    for headers in (owner_headers, member_headers):
+        assert client.get("/space_work", headers=headers).json()["data"] == []
+        assert client.get(f"/documents?space_work_id={space.id}", headers=headers).json()["data"] == []
+        for path in (doc_path, f"{doc_path}/versions", f"{doc_path}/versions/compare?from_version=1&to_version=1", f"{doc_path}/permissions"):
+            assert client.get(path, headers=headers).status_code == 404
+        assert client.put(doc_path, headers=headers, json={"content": "changed"}).status_code == 404
+        assert client.post(f"{doc_path}/versions/1/restore", headers=headers).status_code == 404
+
+    audit_path = f"/audit?space_work_id={space.id}&action=space_work.archived"
+    audit = client.get(audit_path, headers=owner_headers)
+    assert audit.status_code == 200
+    assert [event["user_id"] for event in audit.json()["data"]] == [owner.id]
+    assert client.get(audit_path, headers=member_headers).status_code == 404
+
+    with test_sessions() as db:
+        assert not db.get(SpaceWork, space.id).is_active
+        assert not db.get(Document, doc_id).is_deleted
+        versions = db.scalars(select(DocumentVersion).where(DocumentVersion.document_id == doc_id)).all()
+        assert [version.content for version in versions] == ["initial"]
 
 
 def test_invitation_acceptance_adds_member_and_is_audited(api, user_factory, auth_headers, add_member):

@@ -18,7 +18,7 @@ router = APIRouter(prefix="/audit", tags=["Audit"], responses=ERROR_RESPONSES)
     "",
     response_model=ApiResponse[list[AuditLogResponse]],
     summary="Consultar bitácora",
-    description="Devuelve eventos del espacio del Gestor propietario. Permite filtrar y paginar resultados.",
+    description="Devuelve eventos del espacio del Gestor propietario, incluso si se archivó. Permite filtrar y paginar resultados.",
 )
 def list_audit_logs(
     space_work_id: int = Query(gt=0, description="Identificador del espacio del Gestor autenticado"),

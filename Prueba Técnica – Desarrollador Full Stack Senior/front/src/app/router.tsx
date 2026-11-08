@@ -12,6 +12,7 @@ import { getInvitationReturnPath } from '@/features/invitations/utils/invitation
 import DashboardPage from '@/features/workspaces/pages/DashboardPage'
 import CreateWorkspacePage from '@/features/workspaces/pages/CreateWorkspacePage'
 import WorkspacesPage from '@/features/workspaces/pages/WorkspacesPage'
+import WorkspaceMembersPage from '@/features/workspaces/pages/WorkspaceMembersPage'
 import WorkspaceDocumentsPage from '@/features/documents/pages/WorkspaceDocumentsPage'
 import { useSessionActivity } from '@/features/auth/hooks/useSessionActivity'
 import { getSessionId, subscribeToSession } from '@/features/auth/session/sessionToken'
@@ -64,6 +65,7 @@ function AuthRoutes() {
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/workspaces" element={<WorkspacesPage />} />
             <Route path="/workspaces/:workspaceId" element={<WorkspaceDocumentsPage />} />
+            <Route path="/workspaces/:workspaceId/members" element={<WorkspaceMembersPage />} />
             <Route path="/document" element={<LegacyDocumentList />} />
             <Route path="/document/:documentId" element={
               <Suspense fallback={<p role="status">Abriendo documento…</p>}><DocumentPage /></Suspense>

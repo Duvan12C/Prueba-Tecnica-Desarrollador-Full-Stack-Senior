@@ -3,6 +3,7 @@ import { Icon } from '@iconify/react'
 import { useBeforeUnload, useNavigate, useParams } from 'react-router'
 import DocumentEditor from '@/features/documents/components/DocumentEditor'
 import { useDocument } from '@/features/documents/hooks/useDocument'
+import DocumentPermissionsDialog from '@/features/permissions/components/DocumentPermissionsDialog'
 import Breadcrumbs from '@/shared/components/Breadcrumbs'
 import Button from '@/shared/components/Button'
 import ConfirmDialog from '@/shared/components/ConfirmDialog'
@@ -12,6 +13,7 @@ function OpenDocument({ documentId, readOnly }: { documentId: number; readOnly: 
     const { document, loadError, saveError, isSaving, save } = useDocument(documentId)
     const [draft, setDraft] = useState<string | null>(null)
     const [pendingPath, setPendingPath] = useState<string | null>(null)
+    const [sharingOpen, setSharingOpen] = useState(false)
     const isEditing = !!document?.canEdit && !readOnly
     const hasChanges = draft !== null && draft !== document?.content
 
@@ -71,6 +73,12 @@ function OpenDocument({ documentId, readOnly }: { documentId: number; readOnly: 
                         startIcon={<Icon icon="tabler:history" width="18" />}>
                         Historial
                     </Button>
+                    {document.permission === 'admin' && (
+                        <Button variant="outline" disabled={isSaving} onClick={() => setSharingOpen(true)}
+                            startIcon={<Icon icon="tabler:share" width="18" />}>
+                            Compartir
+                        </Button>
+                    )}
                     {isEditing && (
                         <Button onClick={handleSave} disabled={!hasChanges} loading={isSaving} loadingText="Guardando…"
                             startIcon={<Icon icon="tabler:device-floppy" width="18" />}>
@@ -86,6 +94,9 @@ function OpenDocument({ documentId, readOnly }: { documentId: number; readOnly: 
             </header>
             {saveError && <p role="alert" className="rounded-xl bg-danger-bg p-4 text-sm text-danger-text">{saveError}</p>}
             <DocumentEditor content={document.content} editable={isEditing} disabled={isSaving} onChange={isEditing ? setDraft : undefined} />
+            {sharingOpen && document.permission === 'admin' && (
+                <DocumentPermissionsDialog documentId={documentId} documentTitle={document.title} onClose={() => setSharingOpen(false)} />
+            )}
             <ConfirmDialog
                 open={pendingPath !== null}
                 title="¿Salir sin guardar?"

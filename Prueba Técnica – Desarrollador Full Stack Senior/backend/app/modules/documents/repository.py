@@ -37,9 +37,10 @@ class DocumentRepository:
         return self.db.scalar(statement) is not None
 
     def get_document(self, document_id: int) -> Document | None:
-        statement = select(Document).where(
-            Document.id == document_id,
-            Document.is_deleted == false(),
+        statement = (
+            select(Document)
+            .join(SpaceWork, SpaceWork.id == Document.space_work_id)
+            .where(Document.id == document_id, Document.is_deleted == false(), SpaceWork.is_active == true())
         )
         return self.db.scalar(statement)
 
@@ -71,13 +72,11 @@ class DocumentRepository:
 
     def list_for_user(self, space_work_id: int, user_id: int) -> list[Document]:
         manager_access = exists(
-            select(SpaceWork.id)
-            .join(User, User.id == SpaceWork.owner_user_id)
+            select(User.id)
             .join(Role, Role.id == User.rol_id)
             .where(
-                SpaceWork.id == Document.space_work_id,
-                SpaceWork.owner_user_id == user_id,
-                SpaceWork.is_active == true(),
+                User.id == SpaceWork.owner_user_id,
+                User.id == user_id,
                 User.is_active == true(),
                 Role.name == "Gestor",
             )
@@ -100,14 +99,41 @@ class DocumentRepository:
         )
         statement = (
             select(Document)
+            .join(SpaceWork, SpaceWork.id == Document.space_work_id)
             .where(
                 Document.space_work_id == space_work_id,
                 Document.is_deleted == false(),
+                SpaceWork.is_active == true(),
                 or_(manager_access, permission_access),
             )
             .order_by(Document.updated_at.desc(), Document.created_at.desc())
         )
         return list(self.db.scalars(statement).all())
+
+    def list_member_access(self, document: Document):
+        statement = (
+            select(User.id, User.name, User.email, Permission.name, SpaceWork.owner_user_id)
+            .select_from(SpaceWorkUser)
+            .join(User, User.id == SpaceWorkUser.user_id)
+            .join(SpaceWork, SpaceWork.id == SpaceWorkUser.space_work_id)
+            .outerjoin(
+                PermissionDocumentUser,
+                and_(
+                    PermissionDocumentUser.document_id == document.id,
+                    PermissionDocumentUser.space_work_id == SpaceWorkUser.space_work_id,
+                    PermissionDocumentUser.user_id == SpaceWorkUser.user_id,
+                ),
+            )
+            .outerjoin(Permission, Permission.id == PermissionDocumentUser.permission_id)
+            .where(
+                SpaceWorkUser.space_work_id == document.space_work_id,
+                SpaceWorkUser.is_active == true(),
+                SpaceWork.is_active == true(),
+                User.is_active == true(),
+            )
+            .order_by(User.name, User.id)
+        )
+        return self.db.execute(statement).all()
 
     def latest_version(self, document_id: int) -> DocumentVersion | None:
         statement = (

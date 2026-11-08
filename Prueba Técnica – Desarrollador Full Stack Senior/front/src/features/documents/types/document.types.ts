@@ -1,4 +1,5 @@
 import type { Workspace } from '@/features/workspaces/types/workspace.types'
+import type { DocumentPermission } from '@/features/permissions/types/permission.types'
 
 export interface DocumentListItem {
     id: number
@@ -11,6 +12,7 @@ export interface DocumentListItem {
 
 export interface DocumentDetails extends DocumentListItem {
     content: string
+    permission: DocumentPermission
 }
 
 export interface AccessibleDocument extends DocumentDetails {

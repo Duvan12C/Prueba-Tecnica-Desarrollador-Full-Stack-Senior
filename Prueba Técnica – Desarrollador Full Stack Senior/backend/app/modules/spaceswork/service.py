@@ -1,10 +1,11 @@
 from app.modules.spaceswork.schemas import (
     SpaceWorkCreateRequest,
-    SpaceWorkResponse
+    SpaceWorkMemberResponse,
+    SpaceWorkMemberSummary,
+    SpaceWorkResponse,
 )
 from app.modules.spaceswork.models import SpaceWork
 from app.modules.spaceswork.repository import SpaceWorkRepository
-from app.modules.spaceswork.schemas import SpaceWorkMemberResponse
 from app.shared.exceptions import ForbiddenError, ResourceNotFoundError
 
 
@@ -35,7 +36,19 @@ class SpaceWorkService:
 
     def list_for_user(self, user_id: int) -> list[SpaceWorkResponse]:
         spaces = self.repository.list_for_user(user_id)
-        return [SpaceWorkResponse.model_validate(space) for space in spaces]
+        summaries: dict[int, SpaceWorkMemberSummary] = {}
+        for space_id, member_name, member_count in self.repository.list_member_previews(user_id):
+            summary = summaries.setdefault(space_id, SpaceWorkMemberSummary(count=member_count, names=[]))
+            summary.names.append(member_name)
+        return [
+            SpaceWorkResponse.model_validate(space).model_copy(update={"member_summary": summaries.get(space.id)})
+            for space in spaces
+        ]
+
+    def archive(self, space_work_id: int, user_id: int) -> None:
+        if not self.repository.is_manager_of_space(space_work_id, user_id, active_only=False):
+            raise ForbiddenError("Solo el Gestor propietario puede archivar el espacio")
+        self.repository.archive(space_work_id, user_id)
 
     def list_members(self, space_work_id: int, user_id: int) -> list[SpaceWorkMemberResponse]:
         if not self.repository.can_view_members(space_work_id, user_id):

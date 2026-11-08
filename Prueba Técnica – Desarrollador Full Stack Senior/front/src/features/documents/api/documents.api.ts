@@ -2,8 +2,7 @@ import { apiClient } from '@/shared/api/client'
 import type { ApiResponse } from '@/shared/api/api.types'
 import type { AccessibleDocument, CreateDocumentRequest, DocumentDetails, DocumentListItem, WorkspaceDocuments } from '@/features/documents/types/document.types'
 import type { DocumentVersion } from '@/features/versions/types/version.types'
-import { getWorkspaceCapabilities, listWorkspaces } from '@/features/workspaces/api/workspaces.api'
-import { getSessionUserId } from '@/features/auth/session/sessionToken'
+import { listWorkspaces } from '@/features/workspaces/api/workspaces.api'
 
 export async function loadWorkspaceDocuments(workspaceId: number, signal: AbortSignal): Promise<WorkspaceDocuments> {
     const spaces = await listWorkspaces(signal)
@@ -29,18 +28,13 @@ export async function getDocument(id: number, signal: AbortSignal): Promise<Acce
     if (!data.success || !data.data) throw new Error(data.message)
 
     const document = data.data
-    const userId = getSessionUserId()
-    if (userId !== null) {
-        const [spaces, capabilities] = await Promise.all([listWorkspaces(signal), getWorkspaceCapabilities(signal)])
-        const workspace = spaces.find(({ id }) => id === document.space_work_id)
-        return {
-            ...document,
-            canEdit: workspace?.owner_user_id === userId && capabilities.can_create,
-            workspaceName: workspace?.name ?? null,
-        }
+    const spaces = await listWorkspaces(signal)
+    const workspace = spaces.find(({ id }) => id === document.space_work_id)
+    return {
+        ...document,
+        canEdit: document.permission === 'edit' || document.permission === 'admin',
+        workspaceName: workspace?.name ?? null,
     }
-
-    return { ...document, canEdit: false, workspaceName: null }
 }
 
 export async function saveDocumentVersion(id: number, content: string): Promise<DocumentVersion> {

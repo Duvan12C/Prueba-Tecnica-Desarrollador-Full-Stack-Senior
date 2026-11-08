@@ -10,6 +10,20 @@ export interface Workspace extends WorkspaceAppearance {
     name: string
     description: string | null
     owner_user_id: number
+    member_summary: WorkspaceMemberSummary | null
+}
+
+export interface WorkspaceMemberSummary {
+    count: number
+    names: string[]
+}
+
+export interface WorkspaceMember {
+    user_id: number
+    name: string
+    email: string
+    role_name: string
+    joined_at: string
 }
 
 export type CreateWorkspaceRequest = WorkspaceAppearance & Pick<Workspace, 'name' | 'description'>

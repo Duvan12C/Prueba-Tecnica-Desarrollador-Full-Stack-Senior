@@ -18,7 +18,6 @@ class AuditRepository:
             .where(
                 SpaceWork.id == space_work_id,
                 SpaceWork.owner_user_id == user_id,
-                SpaceWork.is_active == true(),
                 User.is_active == true(),
                 Role.name == "Gestor",
             )

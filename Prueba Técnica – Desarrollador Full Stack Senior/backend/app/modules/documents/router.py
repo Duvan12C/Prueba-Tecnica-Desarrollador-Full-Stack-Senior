@@ -7,11 +7,13 @@ from app.modules.documents.repository import DocumentRepository
 from app.modules.documents.schemas import (
     DocumentCreateRequest,
     DocumentListItem,
+    DocumentMemberAccessResponse,
     DocumentPermissionRequest,
     DocumentPermissionResponse,
     DocumentResponse,
     DocumentSaveRequest,
     DocumentVersionResponse,
+    PermissionName,
     VersionCompareResponse,
 )
 from app.modules.documents.service import DocumentService
@@ -27,7 +29,7 @@ def build_service(db: Session) -> DocumentService:
     return DocumentService(DocumentRepository(db))
 
 
-def make_document_response(document, latest):
+def make_document_response(document, latest, permission: PermissionName):
     return DocumentResponse(
         id=document.id,
         title=document.title,
@@ -37,6 +39,7 @@ def make_document_response(document, latest):
         updated_at=document.updated_at,
         current_version_number=latest.version_number,
         content=latest.content,
+        permission=permission,
     )
 
 
@@ -58,7 +61,7 @@ def create_document(
         return ApiResponse[DocumentResponse](
             success=True,
             message="Documento creado",
-            data=make_document_response(document, version),
+            data=make_document_response(document, version, "admin"),
         )
     except PermissionError as error:
         raise HTTPException(status_code=403, detail=str(error)) from error
@@ -106,11 +109,11 @@ def get_document(
 ):
     service = build_service(db)
     try:
-        document, _ = service.get_readable_document(document_id, current_user.id)
+        document, permission = service.get_readable_document(document_id, current_user.id)
         latest = service.repository.latest_version(document.id)
         if latest is None:
             raise LookupError("Documento no encontrado")
-        return ApiResponse[DocumentResponse](success=True, message="Documento", data=make_document_response(document, latest))
+        return ApiResponse[DocumentResponse](success=True, message="Documento", data=make_document_response(document, latest, permission))
     except LookupError as error:
         raise HTTPException(status_code=404, detail=str(error)) from error
 
@@ -201,6 +204,21 @@ def restore_version(
         raise HTTPException(status_code=404, detail=str(error)) from error
     except PermissionError as error:
         raise HTTPException(status_code=403, detail=str(error)) from error
+
+
+@router.get(
+    "/{document_id}/permissions",
+    response_model=ApiResponse[list[DocumentMemberAccessResponse]],
+    summary="Consultar acceso al documento",
+    description="Lista los miembros activos del espacio y su acceso al documento. Requiere permiso admin.",
+)
+def list_document_permissions(
+    document_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    members = build_service(db).list_member_access(document_id, current_user.id)
+    return ApiResponse(success=True, message="Acceso al documento", data=members)
 
 
 @router.put(

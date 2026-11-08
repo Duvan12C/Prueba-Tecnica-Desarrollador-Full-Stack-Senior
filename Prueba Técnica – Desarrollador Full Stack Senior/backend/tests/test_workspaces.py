@@ -7,7 +7,8 @@ import pytest
 )
 def test_workspace_creation_permission(api, user_factory, auth_headers, role, can_create, create_status):
     client, _ = api
-    headers = auth_headers(user_factory("workspace@example.com", role))
+    user = user_factory("workspace@example.com", role)
+    headers = auth_headers(user)
     assert client.get("/space_work", headers=headers).json()["data"] == []
 
     capabilities = client.get("/space_work/capabilities", headers=headers)
@@ -22,7 +23,9 @@ def test_workspace_creation_permission(api, user_factory, auth_headers, role, ca
         assert workspace["description"] is None
         assert workspace["icon_key"] == "folder"
         assert workspace["color_key"] == "blue"
-        assert client.get("/space_work", headers=headers).json()["data"] == [workspace]
+        assert client.get("/space_work", headers=headers).json()["data"] == [
+            {**workspace, "member_summary": {"count": 1, "names": [user.name]}}
+        ]
 
 
 @pytest.mark.parametrize("name", ["   ", "a" * 151])
@@ -35,7 +38,8 @@ def test_workspace_rejects_invalid_name(api, user_factory, auth_headers, name):
 
 def test_workspace_persists_appearance(api, user_factory, auth_headers):
     client, _ = api
-    headers = auth_headers(user_factory("manager@example.com", "Gestor"))
+    user = user_factory("manager@example.com", "Gestor")
+    headers = auth_headers(user)
     response = client.post(
         "/space_work/create",
         headers=headers,
@@ -45,7 +49,9 @@ def test_workspace_persists_appearance(api, user_factory, auth_headers):
     assert response.status_code == 201
     workspace = response.json()["data"]
     assert (workspace["icon_key"], workspace["color_key"]) == ("rocket", "green")
-    assert client.get("/space_work", headers=headers).json()["data"] == [workspace]
+    assert client.get("/space_work", headers=headers).json()["data"] == [
+        {**workspace, "member_summary": {"count": 1, "names": [user.name]}}
+    ]
 
 
 @pytest.mark.parametrize("field", ["icon_key", "color_key"])

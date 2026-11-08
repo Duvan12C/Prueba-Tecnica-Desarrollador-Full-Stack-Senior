@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 
 from app.modules.spaceswork.models import SpaceWork, SpaceWorkUser
 from app.modules.users.models import User, Role
-from sqlalchemy import and_, exists, false, or_, select, true
+from sqlalchemy import and_, case, exists, false, func, or_, select, true, update
 
 from app.modules.audit.models import AuditLog
 from app.modules.documents.model import Document
@@ -24,7 +24,7 @@ class SpaceWorkRepository:
         )
         return self.db.scalar(statement) is not None
 
-    def is_manager_of_space(self, space_work_id: int, user_id: int) -> bool:
+    def is_manager_of_space(self, space_work_id: int, user_id: int, *, active_only: bool = True) -> bool:
         statement = (
             select(SpaceWork.id)
             .join(User, User.id == SpaceWork.owner_user_id)
@@ -32,11 +32,12 @@ class SpaceWorkRepository:
             .where(
                 SpaceWork.id == space_work_id,
                 SpaceWork.owner_user_id == user_id,
-                SpaceWork.is_active == true(),
                 User.is_active == true(),
                 Role.name == "Gestor",
             )
         )
+        if active_only:
+            statement = statement.where(SpaceWork.is_active == true())
         return self.db.scalar(statement) is not None
 
     def list_for_user(self, user_id: int) -> list[SpaceWork]:
@@ -58,22 +59,21 @@ class SpaceWorkRepository:
         return list(self.db.scalars(statement).all())
 
     def can_view_members(self, space_work_id: int, user_id: int) -> bool:
-        manager = (
-            select(SpaceWork.id)
-            .join(User, User.id == SpaceWork.owner_user_id)
+        return self.db.scalar(self._visible_member_spaces(user_id).where(SpaceWork.id == space_work_id)) is not None
+
+    def _visible_member_spaces(self, user_id: int):
+        manager = exists(
+            select(User.id)
             .join(Role, Role.id == User.rol_id)
             .where(
-                SpaceWork.id == space_work_id,
+                User.id == SpaceWork.owner_user_id,
                 SpaceWork.owner_user_id == user_id,
-                SpaceWork.is_active == true(),
                 User.is_active == true(),
                 Role.name == "Gestor",
             )
         )
-        if self.db.scalar(manager) is not None:
-            return True
 
-        admin_document = (
+        admin_document = exists(
             select(PermissionDocumentUser.id)
             .join(Permission, Permission.id == PermissionDocumentUser.permission_id)
             .join(Document, Document.id == PermissionDocumentUser.document_id)
@@ -84,17 +84,46 @@ class SpaceWorkRepository:
                     SpaceWorkUser.user_id == PermissionDocumentUser.user_id,
                 ),
             )
-            .join(SpaceWork, SpaceWork.id == PermissionDocumentUser.space_work_id)
             .where(
-                PermissionDocumentUser.space_work_id == space_work_id,
+                PermissionDocumentUser.space_work_id == SpaceWork.id,
                 PermissionDocumentUser.user_id == user_id,
                 Permission.name == "admin",
+                Document.space_work_id == SpaceWork.id,
                 Document.is_deleted == false(),
                 SpaceWorkUser.is_active == true(),
-                SpaceWork.is_active == true(),
             )
         )
-        return self.db.scalar(admin_document) is not None
+        return select(SpaceWork.id).where(SpaceWork.is_active == true(), or_(manager, admin_document))
+
+    def list_member_previews(self, user_id: int) -> list[tuple[int, str, int]]:
+        workspace = SpaceWork.__table__.alias("preview_workspace")
+        partition = SpaceWorkUser.space_work_id
+        ranked_members = (
+            select(
+                partition.label("workspace_id"),
+                User.name.label("member_name"),
+                func.count().over(partition_by=partition).label("member_count"),
+                func.row_number().over(
+                    partition_by=partition,
+                    order_by=(case((User.id == workspace.c.owner_user_id, 0), else_=1), User.name, User.id),
+                ).label("member_rank"),
+            )
+            .select_from(SpaceWorkUser)
+            .join(User, User.id == SpaceWorkUser.user_id)
+            .join(workspace, workspace.c.id == partition)
+            .where(
+                partition.in_(self._visible_member_spaces(user_id)),
+                SpaceWorkUser.is_active == true(),
+                User.is_active == true(),
+            )
+            .subquery()
+        )
+        statement = (
+            select(ranked_members.c.workspace_id, ranked_members.c.member_name, ranked_members.c.member_count)
+            .where(ranked_members.c.member_rank <= 3)
+            .order_by(ranked_members.c.workspace_id, ranked_members.c.member_rank)
+        )
+        return list(self.db.execute(statement).all())
 
     def list_active_members(self, space_work_id: int) -> list[tuple[User, Role, SpaceWorkUser]]:
         statement = (
@@ -150,6 +179,29 @@ class SpaceWorkRepository:
                     "revoked_document_permissions": len(assignments),
                 }),
             ))
+            self.db.commit()
+        except Exception:
+            self.db.rollback()
+            raise
+
+    def archive(self, space_work_id: int, user_id: int) -> None:
+        try:
+            result = self.db.execute(
+                update(SpaceWork)
+                .where(SpaceWork.id == space_work_id, SpaceWork.owner_user_id == user_id, SpaceWork.is_active == true())
+                .values(is_active=False)
+            )
+            if result.rowcount == 1:
+                self.db.add(AuditLog(
+                    user_id=user_id,
+                    space_work_id=space_work_id,
+                    action="space_work.archived",
+                    entity_type="space_work",
+                    entity_id=space_work_id,
+                    description="Espacio de trabajo archivado",
+                    old_values=json.dumps({"is_active": True}),
+                    new_values=json.dumps({"is_active": False}),
+                ))
             self.db.commit()
         except Exception:
             self.db.rollback()

@@ -38,7 +38,7 @@ export function useDocument(documentId: number) {
             return true
         } catch (error) {
             if (isAxiosError(error) && error.response?.status === 403) {
-                setDocument((current) => current && { ...current, canEdit: false })
+                setDocument((current) => current && { ...current, permission: 'read', canEdit: false })
             }
             setSaveError(getProtectedApiErrorMessage(error, 'No se pudo guardar la versión.'))
             return false

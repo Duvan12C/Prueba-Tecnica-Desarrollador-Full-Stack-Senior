@@ -15,6 +15,11 @@ class SpaceWorkCreateRequest(BaseModel):
     color_key: WorkspaceColor = WorkspaceColor.BLUE
 
 
+class SpaceWorkMemberSummary(BaseModel):
+    count: int
+    names: list[str]
+
+
 class SpaceWorkResponse(BaseModel):
     id: int
     name: str
@@ -22,6 +27,7 @@ class SpaceWorkResponse(BaseModel):
     icon_key: WorkspaceIcon
     color_key: WorkspaceColor
     owner_user_id: int
+    member_summary: SpaceWorkMemberSummary | None = None
 
     model_config = ConfigDict(from_attributes=True)
 

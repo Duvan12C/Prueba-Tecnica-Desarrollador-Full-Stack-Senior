@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Icon } from '@iconify/react'
-import { Link, useParams, useSearchParams } from 'react-router'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 import emptyIllustration from '@/assets/Empty-amico.svg'
 import CreateDocumentDialog from '@/features/documents/components/CreateDocumentDialog'
 import { useDocuments } from '@/features/documents/hooks/useDocuments'
@@ -22,6 +22,7 @@ function documentDate(document: DocumentListItem) {
 }
 
 function WorkspaceDocuments({ workspaceId }: { workspaceId: number }) {
+    const navigate = useNavigate()
     const { catalog, loadError, addDocument } = useDocuments(workspaceId)
     const { canCreateWorkspace, error: permissionError } = useWorkspaceCapabilities()
     const [searchParams, setSearchParams] = useSearchParams()
@@ -71,15 +72,23 @@ function WorkspaceDocuments({ workspaceId }: { workspaceId: number }) {
                         <p className="mt-2 max-w-2xl text-sm wrap-anywhere text-secondary-700">{workspace.description}</p>
                     )}
                 </div>
-                {canCreate && (
+                {(canCreate || workspace?.member_summary) && (
                     <div className="flex flex-wrap gap-2">
-                        <Button variant="outline" onClick={() => setInvitationOpen(true)}
-                            startIcon={<Icon icon="tabler:user-plus" width="19" />}>
-                            Invitar personas
+                        <Button variant="outline" onClick={() => navigate(`/workspaces/${workspaceId}/members`)}
+                            startIcon={<Icon icon="tabler:users" width="19" />}>
+                            Miembros
                         </Button>
-                        <Button onClick={() => setShowCreateDialog(true)} startIcon={<Icon icon="solar:add-circle-linear" width="20" />}>
-                            Nuevo documento
-                        </Button>
+                        {canCreate && (
+                            <>
+                                <Button variant="outline" onClick={() => setInvitationOpen(true)}
+                                    startIcon={<Icon icon="tabler:user-plus" width="19" />}>
+                                    Invitar personas
+                                </Button>
+                                <Button onClick={() => setShowCreateDialog(true)} startIcon={<Icon icon="solar:add-circle-linear" width="20" />}>
+                                    Nuevo documento
+                                </Button>
+                            </>
+                        )}
                     </div>
                 )}
             </header>

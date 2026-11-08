@@ -32,6 +32,14 @@ class DocumentPermissionResponse(BaseModel):
     assigned_at: datetime
 
 
+class DocumentMemberAccessResponse(BaseModel):
+    user_id: int
+    name: str
+    email: str
+    permission: PermissionName | None
+    is_owner: bool
+
+
 class DocumentResponse(BaseModel):
     id: int
     title: str
@@ -41,6 +49,7 @@ class DocumentResponse(BaseModel):
     updated_at: datetime | None
     current_version_number: int
     content: str
+    permission: PermissionName
 
 
 class DocumentListItem(BaseModel):

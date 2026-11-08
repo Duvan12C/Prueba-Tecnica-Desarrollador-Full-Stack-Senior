@@ -3,6 +3,7 @@ import difflib
 from app.modules.documents.repository import DocumentRepository
 from app.modules.documents.schemas import (
     DocumentCreateRequest,
+    DocumentMemberAccessResponse,
     DocumentPermissionRequest,
     DocumentSaveRequest,
 )
@@ -73,6 +74,25 @@ class DocumentService:
             tofile=f"versión-{to_version}",
         ))
 
+    def get_administrable_document(self, document_id: int, user_id: int):
+        document, permission = self.get_readable_document(document_id, user_id)
+        if permission != "admin":
+            raise ForbiddenError("Necesitas permiso admin en este documento para gestionar sus permisos")
+        return document
+
+    def list_member_access(self, document_id: int, user_id: int) -> list[DocumentMemberAccessResponse]:
+        document = self.get_administrable_document(document_id, user_id)
+        return [
+            DocumentMemberAccessResponse(
+                user_id=member_id,
+                name=name,
+                email=email,
+                permission="admin" if member_id == owner_id else permission,
+                is_owner=member_id == owner_id,
+            )
+            for member_id, name, email, permission, owner_id in self.repository.list_member_access(document)
+        ]
+
     def assign_permission(
         self,
         document_id: int,
@@ -80,12 +100,7 @@ class DocumentService:
         data: DocumentPermissionRequest,
         actor_user_id: int,
     ):
-        document = self.repository.get_document(document_id)
-        if document is None:
-            raise ResourceNotFoundError("Documento no encontrado")
-        actor_permission = self.repository.get_access_level(document, actor_user_id)
-        if actor_permission != "admin":
-            raise ForbiddenError("Necesitas permiso admin en este documento para gestionar sus permisos")
+        document = self.get_administrable_document(document_id, actor_user_id)
         return self.repository.set_permission(
             document=document,
             target_user_id=target_user_id,
@@ -94,12 +109,7 @@ class DocumentService:
         )
 
     def revoke_permission(self, document_id: int, target_user_id: int, actor_user_id: int) -> None:
-        document = self.repository.get_document(document_id)
-        if document is None:
-            raise ResourceNotFoundError("Documento no encontrado")
-        actor_permission = self.repository.get_access_level(document, actor_user_id)
-        if actor_permission != "admin":
-            raise ForbiddenError("Necesitas permiso admin en este documento para gestionar sus permisos")
+        document = self.get_administrable_document(document_id, actor_user_id)
         self.repository.revoke_permission(
             document=document,
             target_user_id=target_user_id,

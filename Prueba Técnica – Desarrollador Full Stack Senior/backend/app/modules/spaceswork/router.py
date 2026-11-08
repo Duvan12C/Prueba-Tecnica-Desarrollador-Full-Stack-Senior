@@ -81,6 +81,21 @@ def list_members(
 
 
 @router.delete(
+    "/{space_work_id}",
+    response_model=ApiResponse[None],
+    summary="Archivar espacio de trabajo",
+    description="Desactiva el espacio y conserva sus documentos, versiones y bitácora.",
+)
+def archive(
+    space_work_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    SpaceWorkService(SpaceWorkRepository(db)).archive(space_work_id, current_user.id)
+    return ApiResponse[None](success=True, message="Espacio de trabajo archivado")
+
+
+@router.delete(
     "/{space_work_id}/members/{member_user_id}",
     response_model=ApiResponse[None],
     summary="Retirar miembro del espacio",
