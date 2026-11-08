@@ -59,7 +59,7 @@ function CreatePage() {
     return (
         <main className="grid min-h-dvh place-items-center bg-neutral-50 p-4 sm:p-8">
             <Card className="grid w-full max-w-5xl overflow-hidden rounded-2xl bg-white shadow-2xl md:grid-cols-[0.85fr_1.15fr]">
-                <aside className="relative flex flex-col items-center justify-center gap-4 overflow-hidden bg-gradient-to-br from-secondary-950 via-secondary-950 to-primary-900 px-6 py-8 text-center text-white md:min-h-full md:py-24">
+                <aside className="relative hidden flex-col items-center justify-center gap-4 overflow-hidden bg-gradient-to-br from-secondary-950 via-secondary-950 to-primary-900 px-6 py-8 text-center text-white md:flex md:min-h-full md:py-24">
                     <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-primary-200 md:absolute md:top-8 md:left-8">
                         • Registro
                     </span>

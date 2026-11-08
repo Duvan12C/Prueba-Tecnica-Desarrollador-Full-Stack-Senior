@@ -1,9 +1,11 @@
-import { Outlet } from 'react-router'
+import { Outlet, useMatch } from 'react-router'
 import logo from '@/assets/docspace-imagotipo-horizontal-oscuro.svg'
 import background from '@/assets/docspace-patron-oscuro.svg'
 import Card from '@/shared/components/Card'
 
 function AuthLayout() {
+  const isLogin = useMatch('/login') !== null
+
   return (
     <main className="grid min-h-dvh place-items-center bg-neutral-50 p-4 md:p-8">
       <Card
@@ -13,7 +15,7 @@ function AuthLayout() {
         className="grid w-full max-w-6xl overflow-hidden rounded-3xl bg-white shadow-[0_25px_50px_-12px_rgba(11,28,48,0.2)] md:min-h-[34rem] md:grid-cols-[0.9fr_1.1fr]"
       >
         <aside
-          className="relative flex min-h-80 flex-col justify-between bg-primary-900 bg-cover bg-center p-8 md:min-h-full md:p-10 lg:p-12"
+          className={`relative min-h-80 flex-col justify-between bg-primary-900 bg-cover bg-center p-8 md:min-h-full md:p-10 lg:p-12 ${isLogin ? 'hidden md:flex' : 'flex'}`}
           style={{ backgroundImage: `url("${background}")` }}
         >
           <img src={logo} alt="DocSpace" className="relative z-10 h-auto w-44 object-contain object-left" />

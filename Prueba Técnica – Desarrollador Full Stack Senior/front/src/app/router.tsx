@@ -5,7 +5,6 @@ import WorkspaceLayout, { type WorkspaceOutletContext } from '@/app/WorkspaceLay
 import AuditPage from '@/features/audit/pages/AuditPage'
 import AuthLayout from '@/features/auth/layouts/AuthLayout'
 import CreatePage from '@/features/auth/pages/CreatePage'
-import ForgotPasswordPage from '@/features/auth/pages/ForgotPasswordPage'
 import LoginPage from '@/features/auth/pages/LoginPage'
 import AcceptInvitationPage from '@/features/invitations/pages/AcceptInvitationPage'
 import ReceivedInvitationsPage from '@/features/invitations/pages/ReceivedInvitationsPage'
@@ -64,7 +63,6 @@ function AuthRoutes() {
         <Routes location={location}>
           <Route element={<AuthLayout />}>
             <Route path="/login" element={<GuestLogin />} />
-            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           </Route>
           <Route path="/register" element={<CreatePage />} />
           <Route path="/invitations/accept" element={<AcceptInvitationPage />} />

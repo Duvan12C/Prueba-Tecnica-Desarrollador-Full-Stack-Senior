@@ -97,12 +97,6 @@ function LoginPage({ destination }: { destination: string }) {
             </form>
 
             <div className="mt-8 text-center">
-                <Link
-                    to="/forgot-password"
-                    className="text-sm font-medium text-primary-700 transition-colors hover:text-primary-800"
-                >
-                    ¿Olvidaste tu contraseña?
-                </Link>
                 <p className="mt-3 text-sm text-secondary-600">
                     ¿No tienes cuenta?{' '}
                     <Link to="/register" state={state} className="font-medium text-primary-700 hover:text-primary-800">
