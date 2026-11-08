@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Icon } from '@iconify/react'
 import { motion, useReducedMotion } from 'motion/react'
-import { NavLink, Outlet } from 'react-router'
+import { NavLink, Outlet, useMatch } from 'react-router'
 import logo from '@/assets/docspace-imagotipo-horizontal-oscuro.svg'
 import mark from '@/assets/docspace-isotipo-oscuro.svg'
 import { signOut } from '@/features/auth/session/sessionLifecycle'
@@ -18,6 +18,7 @@ function Sidebar({
   onNavigate?: () => void
   onLogout: () => void
 }) {
+  const inDocument = useMatch('/document/:documentId/*')
   return (
     <div className="flex h-full flex-col bg-secondary-950 text-primary-100">
       <div className={`flex min-h-16 items-center border-b border-white/10 ${collapsed ? 'justify-center' : 'justify-between gap-2 px-4'}`}>
@@ -55,16 +56,16 @@ function Sidebar({
           <span className={collapsed ? 'sr-only' : 'whitespace-nowrap'}>Inicio</span>
         </NavLink>
         <NavLink
-          to="/document"
-          title={collapsed ? 'Documentos' : undefined}
+          to="/workspaces"
+          title={collapsed ? 'Espacios de trabajo' : undefined}
           onClick={onNavigate}
           className={({ isActive }) =>
-            `flex items-center rounded-lg py-2.5 text-sm font-medium motion-safe:transition-colors ${collapsed ? 'justify-center' : 'gap-3 px-3'} ${isActive ? 'bg-primary-600 text-white shadow-md' : 'hover:bg-white/10 hover:text-white'
+            `flex items-center rounded-lg py-2.5 text-sm font-medium motion-safe:transition-colors ${collapsed ? 'justify-center' : 'gap-3 px-3'} ${isActive || inDocument ? 'bg-primary-600 text-white shadow-md' : 'hover:bg-white/10 hover:text-white'
             }`
           }
         >
-          <Icon icon="solar:document-text-linear" width="20" className="shrink-0" aria-hidden="true" />
-          <span className={collapsed ? 'sr-only' : 'whitespace-nowrap'}>Documentos</span>
+          <Icon icon="solar:folder-with-files-linear" width="20" className="shrink-0" aria-hidden="true" />
+          <span className={collapsed ? 'sr-only' : 'whitespace-nowrap'}>Espacios de trabajo</span>
         </NavLink>
       </nav>
       <div className="border-t border-white/10 p-3">

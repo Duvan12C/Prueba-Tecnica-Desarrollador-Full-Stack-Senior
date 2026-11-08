@@ -15,6 +15,7 @@ export interface DocumentDetails extends DocumentListItem {
 
 export interface AccessibleDocument extends DocumentDetails {
     canEdit: boolean
+    workspaceName: string | null
 }
 
 export interface CreateDocumentRequest {
@@ -22,7 +23,7 @@ export interface CreateDocumentRequest {
     title: string
 }
 
-export interface DocumentCatalog {
-    spaces: Workspace[]
-    documents: (DocumentListItem & { spaceName: string })[]
+export interface WorkspaceDocuments {
+    workspace: Workspace
+    documents: DocumentListItem[]
 }

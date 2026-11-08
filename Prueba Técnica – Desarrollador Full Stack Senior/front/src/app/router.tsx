@@ -1,6 +1,6 @@
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { lazy, Suspense, useSyncExternalStore } from 'react'
-import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router'
+import { BrowserRouter, Navigate, Route, Routes, useLocation, useSearchParams } from 'react-router'
 import WorkspaceLayout from '@/app/WorkspaceLayout'
 import AuthLayout from '@/features/auth/layouts/AuthLayout'
 import CreatePage from '@/features/auth/pages/CreatePage'
@@ -8,7 +8,8 @@ import ForgotPasswordPage from '@/features/auth/pages/ForgotPasswordPage'
 import LoginPage from '@/features/auth/pages/LoginPage'
 import DashboardPage from '@/features/workspaces/pages/DashboardPage'
 import CreateWorkspacePage from '@/features/workspaces/pages/CreateWorkspacePage'
-import HomeDocumentPage from '@/features/documents/pages/HomeDocumentPage'
+import WorkspacesPage from '@/features/workspaces/pages/WorkspacesPage'
+import WorkspaceDocumentsPage from '@/features/documents/pages/WorkspaceDocumentsPage'
 import { useSessionActivity } from '@/features/auth/hooks/useSessionActivity'
 import { getSessionId, subscribeToSession } from '@/features/auth/session/sessionToken'
 
@@ -23,6 +24,13 @@ function ProtectedWorkspace() {
 function GuestLogin() {
   const sessionId = useSyncExternalStore(subscribeToSession, getSessionId)
   return sessionId ? <Navigate to="/dashboard" replace /> : <LoginPage />
+}
+
+function LegacyDocumentList() {
+  const [params] = useSearchParams()
+  const workspaceId = Number(params.get('space'))
+  const path = Number.isSafeInteger(workspaceId) && workspaceId > 0 ? `/workspaces/${workspaceId}` : '/workspaces'
+  return <Navigate to={path} replace />
 }
 
 function AuthRoutes() {
@@ -47,9 +55,14 @@ function AuthRoutes() {
           <Route path="/register" element={<CreatePage />} />
           <Route element={<ProtectedWorkspace />}>
             <Route path="/dashboard" element={<DashboardPage />} />
-            <Route path="/document" element={<HomeDocumentPage />} />
+            <Route path="/workspaces" element={<WorkspacesPage />} />
+            <Route path="/workspaces/:workspaceId" element={<WorkspaceDocumentsPage />} />
+            <Route path="/document" element={<LegacyDocumentList />} />
             <Route path="/document/:documentId" element={
               <Suspense fallback={<p role="status">Abriendo documento…</p>}><DocumentPage /></Suspense>
+            } />
+            <Route path="/document/:documentId/view" element={
+              <Suspense fallback={<p role="status">Abriendo documento…</p>}><DocumentPage readOnly /></Suspense>
             } />
             <Route path="/document/:documentId/history" element={
               <Suspense fallback={<p role="status">Cargando historial…</p>}><DocumentHistoryPage /></Suspense>

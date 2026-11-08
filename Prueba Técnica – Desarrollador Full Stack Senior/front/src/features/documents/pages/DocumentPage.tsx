@@ -3,14 +3,16 @@ import { Icon } from '@iconify/react'
 import { useBeforeUnload, useNavigate, useParams } from 'react-router'
 import DocumentEditor from '@/features/documents/components/DocumentEditor'
 import { useDocument } from '@/features/documents/hooks/useDocument'
+import Breadcrumbs from '@/shared/components/Breadcrumbs'
 import Button from '@/shared/components/Button'
 import ConfirmDialog from '@/shared/components/ConfirmDialog'
 
-function OpenDocument({ documentId }: { documentId: number }) {
+function OpenDocument({ documentId, readOnly }: { documentId: number; readOnly: boolean }) {
     const navigate = useNavigate()
     const { document, loadError, saveError, isSaving, save } = useDocument(documentId)
     const [draft, setDraft] = useState<string | null>(null)
     const [pendingPath, setPendingPath] = useState<string | null>(null)
+    const isEditing = !!document?.canEdit && !readOnly
     const hasChanges = draft !== null && draft !== document?.content
 
     useBeforeUnload((event) => {
@@ -26,15 +28,15 @@ function OpenDocument({ documentId }: { documentId: number }) {
     }
 
     async function handleSave() {
-        if (draft === null || isSaving || !hasChanges) return
+        if (!isEditing || draft === null || isSaving || !hasChanges) return
         if (await save(draft)) setDraft((current) => current === draft ? null : current)
     }
 
     if (loadError) {
         return (
             <div className="space-y-4">
+                <Breadcrumbs items={[{ label: 'Espacios de trabajo', to: '/workspaces' }, { label: 'Documento' }]} />
                 <p role="alert" className="rounded-xl bg-danger-bg p-4 text-sm text-danger-text">{loadError}</p>
-                <Button variant="outline" onClick={() => navigate('/document')}>Volver a documentos</Button>
             </div>
         )
     }
@@ -42,37 +44,48 @@ function OpenDocument({ documentId }: { documentId: number }) {
 
     return (
         <section aria-labelledby="document-title" className="mx-auto max-w-6xl space-y-4">
+            <Breadcrumbs
+                items={[
+                    { label: 'Espacios de trabajo', to: '/workspaces' },
+                    { label: document.workspaceName ?? 'Espacio de trabajo', to: `/workspaces/${document.space_work_id}` },
+                    ...(isEditing ? [
+                        { label: document.title, to: `/document/${documentId}/view` },
+                        { label: 'Edición de documento' },
+                    ] : [{ label: document.title }]),
+                ]}
+                linksDisabled={isSaving}
+                onNavigate={open}
+            />
             <header className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-neutral-100 bg-white p-4 sm:p-5">
-                <div className="flex min-w-0 items-center gap-3">
-                    <Button variant="ghost" size="icon" aria-label="Volver a documentos" disabled={isSaving}
-                        onClick={() => open(`/document?space=${document.space_work_id}`)}>
-                        <Icon icon="tabler:arrow-left" width="20" aria-hidden="true" />
-                    </Button>
-                    <div className="min-w-0">
-                        <h1 id="document-title" className="font-heading text-xl font-bold wrap-anywhere text-secondary-950 sm:text-2xl">
-                            {document.title}
-                        </h1>
-                        <p className="mt-1 text-xs text-secondary-700" role="status">
-                            Versión {document.current_version_number}
-                            {hasChanges ? ' · Cambios sin guardar' : document.canEdit ? ' · Guardada' : ' · Solo lectura'}
-                        </p>
-                    </div>
+                <div className="min-w-0">
+                    <h1 id="document-title" className="font-heading text-xl font-bold wrap-anywhere text-secondary-950 sm:text-2xl">
+                        {document.title}
+                    </h1>
+                    <p className="mt-1 text-xs text-secondary-700" role="status">
+                        Versión {document.current_version_number}
+                        {hasChanges ? ' · Cambios sin guardar' : isEditing ? ' · Guardada' : ' · Solo lectura'}
+                    </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
                     <Button variant="outline" disabled={isSaving} onClick={() => open(`/document/${documentId}/history`)}
                         startIcon={<Icon icon="tabler:history" width="18" />}>
                         Historial
                     </Button>
-                    {document.canEdit && (
+                    {isEditing && (
                         <Button onClick={handleSave} disabled={!hasChanges} loading={isSaving} loadingText="Guardando…"
                             startIcon={<Icon icon="tabler:device-floppy" width="18" />}>
                             Guardar versión
                         </Button>
                     )}
+                    {readOnly && document.canEdit && (
+                        <Button onClick={() => open(`/document/${documentId}`)} startIcon={<Icon icon="tabler:pencil" width="18" />}>
+                            Editar documento
+                        </Button>
+                    )}
                 </div>
             </header>
             {saveError && <p role="alert" className="rounded-xl bg-danger-bg p-4 text-sm text-danger-text">{saveError}</p>}
-            <DocumentEditor content={document.content} editable={document.canEdit} disabled={isSaving} onChange={setDraft} />
+            <DocumentEditor content={document.content} editable={isEditing} disabled={isSaving} onChange={isEditing ? setDraft : undefined} />
             <ConfirmDialog
                 open={pendingPath !== null}
                 title="¿Salir sin guardar?"
@@ -87,10 +100,10 @@ function OpenDocument({ documentId }: { documentId: number }) {
     )
 }
 
-export default function DocumentPage() {
+export default function DocumentPage({ readOnly = false }: { readOnly?: boolean }) {
     const documentId = Number(useParams().documentId)
     if (!Number.isSafeInteger(documentId) || documentId <= 0) {
         return <p role="alert" className="text-sm text-danger-text">El documento indicado no es válido.</p>
     }
-    return <OpenDocument key={documentId} documentId={documentId} />
+    return <OpenDocument key={`${documentId}-${readOnly ? 'view' : 'edit'}`} documentId={documentId} readOnly={readOnly} />
 }

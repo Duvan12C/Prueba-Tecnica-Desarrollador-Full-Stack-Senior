@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router'
 import WorkspacePreview from '@/features/workspaces/components/WorkspacePreview'
 import { useCreateWorkspace } from '@/features/workspaces/hooks/useCreateWorkspace'
 import { useWorkspaceCapabilities } from '@/features/workspaces/hooks/useWorkspaceCapabilities'
+import Breadcrumbs from '@/shared/components/Breadcrumbs'
 import Button from '@/shared/components/Button'
 import Card from '@/shared/components/Card'
 import Input from '@/shared/components/Input'
@@ -24,17 +25,14 @@ export default function CreateWorkspacePage() {
         if (isSaving || !canCreateWorkspace || !trimmedName || trimmedName.length > MAX_NAME_LENGTH) return
 
         const workspace = await submit({ name: trimmedName, description: trimmedDescription || null })
-        if (workspace) navigate(`/document?space=${workspace.id}`, { replace: true })
+        if (workspace) navigate(`/workspaces/${workspace.id}`, { replace: true })
     }
 
     return (
         <section aria-labelledby="create-workspace-title" className="mx-auto max-w-6xl space-y-5">
+            <Breadcrumbs items={[{ label: 'Espacios de trabajo', to: '/workspaces' }, { label: 'Nuevo espacio' }]} linksDisabled={isSaving} />
             <Card className="rounded-2xl border border-neutral-100 bg-white p-5 sm:p-7">
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-primary-100 px-3 py-1 text-xs font-semibold text-primary-700">
-                    <Icon icon="solar:folder-with-files-linear" width="16" aria-hidden="true" />
-                    Espacios de trabajo
-                </span>
-                <h1 id="create-workspace-title" className="mt-3 font-heading text-2xl font-bold text-secondary-950 sm:text-3xl">
+                <h1 id="create-workspace-title" className="font-heading text-2xl font-bold text-secondary-950 sm:text-3xl">
                     Crear nuevo espacio de trabajo
                 </h1>
                 <p className="mt-2 max-w-2xl text-sm leading-relaxed text-secondary-700">
@@ -91,7 +89,7 @@ export default function CreateWorkspacePage() {
                         </Card>
                         {saveError && <p role="alert" className="rounded-xl bg-danger-bg p-4 text-sm text-danger-text">{saveError}</p>}
                         <div className="flex flex-wrap justify-end gap-3">
-                            <Button variant="outline" disabled={isSaving} onClick={() => navigate('/document')}>Cancelar</Button>
+                            <Button variant="outline" disabled={isSaving} onClick={() => navigate('/workspaces')}>Cancelar</Button>
                             <Button type="submit" disabled={!trimmedName} loading={isSaving} loadingText="Creando espacio…"
                                 endIcon={<Icon icon="solar:arrow-right-linear" width="18" />}>
                                 Crear espacio de trabajo
@@ -102,7 +100,7 @@ export default function CreateWorkspacePage() {
                 </div>
             )}
             {!canCreateWorkspace && !isLoading && (
-                <Button variant="outline" onClick={() => navigate('/document')}>Volver a documentos</Button>
+                <Button variant="outline" onClick={() => navigate('/workspaces')}>Volver a espacios de trabajo</Button>
             )}
         </section>
     )

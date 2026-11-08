@@ -1,22 +1,21 @@
 import { apiClient } from '@/shared/api/client'
 import type { ApiResponse } from '@/shared/api/api.types'
-import type { AccessibleDocument, CreateDocumentRequest, DocumentCatalog, DocumentDetails, DocumentListItem } from '@/features/documents/types/document.types'
+import type { AccessibleDocument, CreateDocumentRequest, DocumentDetails, DocumentListItem, WorkspaceDocuments } from '@/features/documents/types/document.types'
 import type { DocumentVersion } from '@/features/versions/types/version.types'
 import { getWorkspaceCapabilities, listWorkspaces } from '@/features/workspaces/api/workspaces.api'
 import { getSessionUserId } from '@/features/auth/session/sessionToken'
 
-export async function loadDocuments(signal: AbortSignal): Promise<DocumentCatalog> {
+export async function loadWorkspaceDocuments(workspaceId: number, signal: AbortSignal): Promise<WorkspaceDocuments> {
     const spaces = await listWorkspaces(signal)
-    const documents = await Promise.all(spaces.map(async (space) => {
-        const { data } = await apiClient.get<ApiResponse<DocumentListItem[]>>('/documents', {
-            params: { space_work_id: space.id },
-            signal,
-        })
-        if (!data.success || !data.data) throw new Error(data.message)
-        return data.data.map((document) => ({ ...document, spaceName: space.name }))
-    }))
+    const workspace = spaces.find(({ id }) => id === workspaceId)
+    if (!workspace) throw new Error('Este espacio de trabajo no está disponible.')
 
-    return { spaces, documents: documents.flat() }
+    const { data } = await apiClient.get<ApiResponse<DocumentListItem[]>>('/documents', {
+        params: { space_work_id: workspaceId },
+        signal,
+    })
+    if (!data.success || !data.data) throw new Error(data.message)
+    return { workspace, documents: data.data }
 }
 
 export async function createDocument(request: CreateDocumentRequest): Promise<DocumentListItem> {
@@ -33,11 +32,15 @@ export async function getDocument(id: number, signal: AbortSignal): Promise<Acce
     const userId = getSessionUserId()
     if (userId !== null) {
         const [spaces, capabilities] = await Promise.all([listWorkspaces(signal), getWorkspaceCapabilities(signal)])
-        const isOwner = spaces.some(({ id, owner_user_id }) => id === document.space_work_id && owner_user_id === userId)
-        return { ...document, canEdit: isOwner && capabilities.can_create }
+        const workspace = spaces.find(({ id }) => id === document.space_work_id)
+        return {
+            ...document,
+            canEdit: workspace?.owner_user_id === userId && capabilities.can_create,
+            workspaceName: workspace?.name ?? null,
+        }
     }
 
-    return { ...document, canEdit: false }
+    return { ...document, canEdit: false, workspaceName: null }
 }
 
 export async function saveDocumentVersion(id: number, content: string): Promise<DocumentVersion> {

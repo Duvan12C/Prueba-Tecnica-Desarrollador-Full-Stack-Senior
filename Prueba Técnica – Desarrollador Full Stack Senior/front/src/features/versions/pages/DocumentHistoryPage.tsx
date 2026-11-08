@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { Icon } from '@iconify/react'
-import { useNavigate, useParams } from 'react-router'
+import { useParams } from 'react-router'
 import { useDocument } from '@/features/documents/hooks/useDocument'
 import VersionComparisonView from '@/features/versions/components/VersionComparisonView'
 import { useVersionHistory } from '@/features/versions/hooks/useVersionHistory'
+import Breadcrumbs from '@/shared/components/Breadcrumbs'
 import Button from '@/shared/components/Button'
 import Card from '@/shared/components/Card'
 import ConfirmDialog from '@/shared/components/ConfirmDialog'
@@ -12,7 +13,6 @@ const dateFormat = new Intl.DateTimeFormat('es-SV', { dateStyle: 'medium', timeS
 const selectClass = 'mt-1 h-10 w-full rounded-lg border border-neutral-200 bg-white px-3 text-sm'
 
 function DocumentHistory({ documentId }: { documentId: number }) {
-    const navigate = useNavigate()
     const { document, loadError: documentError } = useDocument(documentId)
     const { versions, comparison, loadError, actionError, pending, restoreForbidden, clearComparison, compare, restore } = useVersionHistory(documentId)
     const [previousNumber, setPreviousNumber] = useState<number | null>(null)
@@ -40,17 +40,21 @@ function DocumentHistory({ documentId }: { documentId: number }) {
 
     return (
         <section aria-labelledby="history-title" className="mx-auto max-w-7xl space-y-4">
-            <header className="flex items-center gap-3 rounded-2xl border border-neutral-100 bg-white p-4 sm:p-5">
-                <Button variant="ghost" size="icon" aria-label="Volver al documento" disabled={pending === 'restore'}
-                    onClick={() => navigate(`/document/${documentId}`)}>
-                    <Icon icon="tabler:arrow-left" width="20" aria-hidden="true" />
-                </Button>
-                <div className="min-w-0">
-                    {document && <p className="text-sm wrap-anywhere text-secondary-700">{document.title}</p>}
-                    <h1 id="history-title" className="font-heading text-xl font-bold text-secondary-950 sm:text-2xl">
-                        Historial de versiones
-                    </h1>
-                </div>
+            <Breadcrumbs
+                items={[
+                    { label: 'Espacios de trabajo', to: '/workspaces' },
+                    ...(document ? [
+                        { label: document.workspaceName ?? 'Espacio de trabajo', to: `/workspaces/${document.space_work_id}` },
+                        { label: document.title, to: `/document/${documentId}/view` },
+                    ] : []),
+                    { label: 'Historial de versiones' },
+                ]}
+                linksDisabled={pending === 'restore'}
+            />
+            <header className="rounded-2xl border border-neutral-100 bg-white p-4 sm:p-5">
+                <h1 id="history-title" className="font-heading text-xl font-bold text-secondary-950 sm:text-2xl">
+                    Historial de versiones
+                </h1>
             </header>
 
             {(documentError || loadError) && (
