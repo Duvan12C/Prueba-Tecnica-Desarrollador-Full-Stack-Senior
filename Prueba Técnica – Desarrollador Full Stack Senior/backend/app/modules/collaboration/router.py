@@ -9,7 +9,14 @@ from starlette.concurrency import run_in_threadpool
 
 from app.core.database import get_session_factory
 from app.modules.collaboration.hub import Connection, collaboration_hub
-from app.modules.collaboration.schemas import AuthenticateMessage, EditMessage, Participant
+from app.modules.collaboration.schemas import (
+    AuthenticateMessage,
+    EditMessage,
+    Participant,
+    SaveVersionMessage,
+    VersionActivity,
+    collaboration_message,
+)
 from app.modules.collaboration.service import CollaborationIdentity, CollaborationService
 from app.shared.exceptions import ConflictError, ForbiddenError, ResourceNotFoundError, UnauthorizedError
 
@@ -45,34 +52,66 @@ async def wait_for_activity(incoming: asyncio.Task[str], connection: Connection)
         await asyncio.gather(change, return_exceptions=True)
 
 
-async def handle_edit(
+async def publish_version(
+    document_id: int,
+    identity: CollaborationIdentity,
+    connection: Connection,
+    service: CollaborationService,
+    message: SaveVersionMessage,
+) -> dict:
+    snapshot = await run_in_threadpool(service.snapshot, document_id, identity)
+    service.require_current_edit(snapshot, message.base_revision)
+    if not snapshot.has_unpublished_changes:
+        return {"type": "version_published", "version": snapshot.version, "revision": snapshot.revision, "created": False}
+
+    name = identity.participant.name
+    collaboration_hub.announce(document_id, connection, VersionActivity(status="saving", name=name))
+    try:
+        version, created = await run_in_threadpool(service.save_version, document_id, identity, message.base_revision)
+    except Exception:
+        collaboration_hub.announce(document_id, connection, VersionActivity(status="cancelled", name=name))
+        raise
+    activity = VersionActivity(status="saved", name=name, version=version) if created else VersionActivity(status="cancelled", name=name)
+    collaboration_hub.announce(document_id, connection, activity)
+    return {"type": "version_published", "version": version, "revision": snapshot.revision, "created": created}
+
+
+async def handle_message(
     websocket: WebSocket,
     document_id: int,
     identity: CollaborationIdentity,
+    connection: Connection,
     service: CollaborationService,
     frame: str,
 ) -> None:
     try:
-        edit = EditMessage.model_validate_json(frame)
+        message = collaboration_message.validate_json(frame)
     except ValidationError:
-        await websocket.send_json({"type": "error", "message": "El mensaje de edición no es válido"})
+        await websocket.send_json({"type": "error", "message": "El mensaje de colaboración no es válido"})
         return
 
     async with collaboration_hub.writing(document_id):
         try:
-            version = await run_in_threadpool(service.save, document_id, identity, edit)
+            if isinstance(message, EditMessage):
+                snapshot = await run_in_threadpool(service.edit, document_id, identity, message)
+                response = {
+                    "type": "draft_synced",
+                    "revision": snapshot.revision,
+                    "has_unpublished_changes": snapshot.has_unpublished_changes,
+                }
+            else:
+                response = await publish_version(document_id, identity, connection, service, message)
         except ConflictError:
             snapshot = await run_in_threadpool(service.snapshot, document_id, identity)
-            response = {"type": "conflict", "request_id": edit.request_id, **snapshot.model_dump()}
+            response = {"type": "conflict", **snapshot.model_dump()}
         except ForbiddenError as error:
-            response = {"type": "error", "request_id": edit.request_id, "message": error.message}
+            response = {"type": "error", "message": error.message}
         except SQLAlchemyError:
-            logger.exception("No se pudo guardar una edición colaborativa del documento %s", document_id)
-            response = {"type": "error", "request_id": edit.request_id, "message": "No se pudo guardar el borrador"}
+            logger.exception("Falló una operación colaborativa del documento %s", document_id)
+            response = {"type": "error", "message": "No se pudo completar el guardado"}
         else:
             collaboration_hub.notify(document_id)
-            response = {"type": "saved", "request_id": edit.request_id, "version": version}
-    await websocket.send_json(response)
+    await websocket.send_json({**response, "request_id": message.request_id})
 
 
 async def listen(
@@ -82,14 +121,14 @@ async def listen(
     connection: Connection,
     service: CollaborationService,
 ) -> None:
-    previous_document: tuple[int, str] | None = None
+    previous_document: tuple[int, int, str] | None = None
     previous_people: list[Participant] | None = None
     incoming = asyncio.create_task(receive_frame(websocket))
     try:
         while True:
             connection.changed.clear()
             snapshot = await run_in_threadpool(service.snapshot, document_id, identity)
-            document_key = (snapshot.version, snapshot.permission)
+            document_key = (snapshot.version, snapshot.revision, snapshot.permission)
             if document_key != previous_document:
                 await websocket.send_json({"type": "document", **snapshot.model_dump()})
                 previous_document = document_key
@@ -99,10 +138,13 @@ async def listen(
                 await websocket.send_json({"type": "presence", "participants": [person.model_dump() for person in people]})
                 previous_people = people
 
+            while connection.activities:
+                await websocket.send_json(connection.activities.popleft().model_dump())
+
             if await wait_for_activity(incoming, connection):
                 frame = incoming.result()
                 incoming = asyncio.create_task(receive_frame(websocket))
-                await handle_edit(websocket, document_id, identity, service, frame)
+                await handle_message(websocket, document_id, identity, connection, service, frame)
     finally:
         incoming.cancel()
         await asyncio.gather(incoming, return_exceptions=True)

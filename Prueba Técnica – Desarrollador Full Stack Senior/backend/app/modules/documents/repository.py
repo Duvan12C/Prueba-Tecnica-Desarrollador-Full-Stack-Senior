@@ -6,6 +6,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.modules.audit.models import AuditLog
+from app.modules.collaboration.models import DocumentDraft
 from app.modules.documents.model import Document
 from app.modules.permissions.models import Permission, PermissionDocumentUser
 from app.modules.spaceswork.models import SpaceWork, SpaceWorkUser
@@ -222,6 +223,12 @@ class DocumentRepository:
                 raise ConflictError("El documento no tiene una versión inicial")
             if expected_version is not None and latest.version_number != expected_version:
                 raise ConflictError("El documento cambió desde la versión que editaste")
+            draft = self.db.get(DocumentDraft, document_id)
+            if draft is not None and draft.content != content:
+                if draft.content != latest.content:
+                    raise ConflictError("Guarda primero el borrador compartido para conservar sus cambios")
+                draft.content = content
+                draft.revision += 1
 
             old_title = document.title
             if title is not None:

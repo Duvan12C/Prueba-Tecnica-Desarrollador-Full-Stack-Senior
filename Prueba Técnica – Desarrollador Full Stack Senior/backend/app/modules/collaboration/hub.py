@@ -1,14 +1,16 @@
 import asyncio
+from collections import deque
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 
-from app.modules.collaboration.schemas import Participant
+from app.modules.collaboration.schemas import Participant, VersionActivity
 
 
 @dataclass(eq=False)
 class Connection:
     participant: Participant
     changed: asyncio.Event = field(default_factory=asyncio.Event)
+    activities: deque[VersionActivity] = field(default_factory=lambda: deque(maxlen=32))
 
 
 @dataclass
@@ -53,6 +55,12 @@ class CollaborationHub:
     def participants(self, document_id: int) -> list[Participant]:
         people = {peer.participant.user_id: peer.participant for peer in self._rooms[document_id].connections}
         return sorted(people.values(), key=lambda person: (person.name.casefold(), person.user_id))
+
+    def announce(self, document_id: int, sender: Connection, activity: VersionActivity) -> None:
+        for connection in self._rooms[document_id].connections:
+            if connection is not sender:
+                connection.activities.append(activity)
+                connection.changed.set()
 
     @asynccontextmanager
     async def writing(self, document_id: int):
