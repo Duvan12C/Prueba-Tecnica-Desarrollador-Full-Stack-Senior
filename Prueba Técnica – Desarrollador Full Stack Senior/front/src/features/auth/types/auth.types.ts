@@ -19,3 +19,8 @@ export interface SignUpCredentials {
 }
 
 export type RegisteredUser = Pick<SignUpCredentials, 'name' | 'email'>
+
+export interface CurrentUserProfile {
+  name: string
+  role_name: string
+}

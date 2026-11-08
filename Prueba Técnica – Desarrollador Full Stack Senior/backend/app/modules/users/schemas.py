@@ -18,3 +18,8 @@ class UserCreateResponse(BaseModel):
     email: EmailStr
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class UserProfileResponse(BaseModel):
+    name: str
+    role_name: str

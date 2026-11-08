@@ -1,6 +1,6 @@
 import { apiClient } from '@/shared/api/client'
 import type { ApiResponse } from '@/shared/api/api.types'
-import type { AuthToken, LoginCredentials, RegisteredUser, SignUpCredentials } from '@/features/auth/types/auth.types'
+import type { AuthToken, CurrentUserProfile, LoginCredentials, RegisteredUser, SignUpCredentials } from '@/features/auth/types/auth.types'
 
 export async function login(credentials: LoginCredentials): Promise<AuthToken> {
   const response = await apiClient.post<ApiResponse<AuthToken>>('/auth/login', credentials, { withCredentials: true })
@@ -34,4 +34,10 @@ export async function refreshAuthSession(sessionId: string, active: boolean): Pr
 
 export async function revokeAuthSession(sessionId: string): Promise<void> {
   await apiClient.post('/auth/logout', { session_id: sessionId }, { withCredentials: true })
+}
+
+export async function getCurrentUserProfile(signal: AbortSignal): Promise<CurrentUserProfile> {
+  const { data } = await apiClient.get<ApiResponse<CurrentUserProfile>>('/users/me', { signal })
+  if (!data.success || !data.data) throw new Error(data.message)
+  return data.data
 }

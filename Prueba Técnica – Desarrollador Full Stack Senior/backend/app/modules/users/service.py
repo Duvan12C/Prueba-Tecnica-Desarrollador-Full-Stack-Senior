@@ -1,14 +1,20 @@
-from app.modules.users.schemas import UserCreateRequest, UserCreateResponse
+from app.modules.users.schemas import UserCreateRequest, UserCreateResponse, UserProfileResponse
 from app.modules.users.models import User
 from app.modules.users.repository import UserRepository
 from app.core.security import hash_password
-from app.shared.exceptions import BadRequestError, ConflictError
+from app.shared.exceptions import BadRequestError, ConflictError, ResourceNotFoundError
 
 
 class UserService:
 
     def __init__(self, repository: UserRepository):
         self.repository = repository
+
+    def get_profile(self, user: User) -> UserProfileResponse:
+        role_name = self.repository.get_role_name(user.rol_id)
+        if role_name is None:
+            raise ResourceNotFoundError("No se pudo consultar el rol de la cuenta")
+        return UserProfileResponse(name=user.name, role_name=role_name)
 
     def create_user(self, data: UserCreateRequest) -> UserCreateResponse:
 

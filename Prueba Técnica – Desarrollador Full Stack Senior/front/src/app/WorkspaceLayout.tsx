@@ -4,6 +4,7 @@ import { motion, useReducedMotion } from 'motion/react'
 import { NavLink, Outlet, useMatch } from 'react-router'
 import logo from '@/assets/docspace-imagotipo-horizontal-oscuro.svg'
 import mark from '@/assets/docspace-isotipo-oscuro.svg'
+import CurrentUserSummary from '@/features/auth/components/CurrentUserSummary'
 import { signOut } from '@/features/auth/session/sessionLifecycle'
 import { useReceivedInvitations } from '@/features/invitations/hooks/useReceivedInvitations'
 import { useWorkspaceCapabilities } from '@/features/workspaces/hooks/useWorkspaceCapabilities'
@@ -158,17 +159,20 @@ export default function WorkspaceLayout() {
             <Icon icon="solar:hamburger-menu-linear" width="24" aria-hidden="true" />
           </Button>
           <span className="font-heading font-semibold text-secondary-950 md:hidden">DocSpace</span>
-          <NavLink to="/invitations" end title="Invitaciones"
-            aria-label={invitationLabel}
-            className="relative ml-auto inline-flex min-h-10 items-center gap-2 rounded-lg px-2.5 text-sm font-medium text-secondary-800 hover:bg-neutral-50 aria-[current=page]:bg-primary-100 aria-[current=page]:text-primary-700">
-            <Icon icon="tabler:bell" width="21" aria-hidden="true" />
-            <span className="hidden sm:inline">Invitaciones</span>
-            {invitationCount > 0 && (
-              <span aria-hidden="true" className="rounded-full bg-primary-600 px-1.5 text-xs font-semibold text-white">
-                {invitationCount > 9 ? '9+' : invitationCount}
-              </span>
-            )}
-          </NavLink>
+          <div className="ml-auto flex min-w-0 items-center gap-2 sm:gap-3">
+            <NavLink to="/invitations" end title="Invitaciones"
+              aria-label={invitationLabel}
+              className="relative inline-flex min-h-10 shrink-0 items-center gap-2 rounded-lg px-2.5 text-sm font-medium text-secondary-800 hover:bg-neutral-50 aria-[current=page]:bg-primary-100 aria-[current=page]:text-primary-700">
+              <Icon icon="tabler:bell" width="21" aria-hidden="true" />
+              <span className="hidden sm:inline">Invitaciones</span>
+              {invitationCount > 0 && (
+                <span aria-hidden="true" className="rounded-full bg-primary-600 px-1.5 text-xs font-semibold text-white">
+                  {invitationCount > 9 ? '9+' : invitationCount}
+                </span>
+              )}
+            </NavLink>
+            <CurrentUserSummary />
+          </div>
         </header>
 
         <main className="p-4 md:p-6">

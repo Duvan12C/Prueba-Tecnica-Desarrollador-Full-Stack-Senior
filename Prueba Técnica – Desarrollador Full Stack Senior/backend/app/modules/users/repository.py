@@ -14,6 +14,9 @@ class UserRepository:
     def get_role_by_name(self, role_name: str) -> Role | None:
         return self.db.scalar(select(Role).where(Role.name == role_name))
 
+    def get_role_name(self, role_id: int) -> str | None:
+        return self.db.scalar(select(Role.name).where(Role.id == role_id))
+
     def email_exists(self, email: str) -> bool:
         return self.db.scalar(select(User.id).where(User.email == email)) is not None
 

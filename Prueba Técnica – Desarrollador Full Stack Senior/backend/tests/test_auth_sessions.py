@@ -32,6 +32,18 @@ def authorization(session):
     return {"Authorization": f"Bearer {session['access_token']}"}
 
 
+def test_profile_returns_only_the_authenticated_account(api, user_factory, auth_headers):
+    client, _ = api
+    manager = user_factory("duvan@example.com", "Gestor")
+    collaborator = user_factory("ana@example.com", "Colaborador")
+
+    assert client.get("/users/me").status_code == 401
+    for user, role in ((manager, "Gestor"), (collaborator, "Colaborador")):
+        response = client.get("/users/me", headers=auth_headers(user))
+        assert response.status_code == 200
+        assert response.json()["data"] == {"name": user.name, "role_name": role}
+
+
 def test_activity_renews_session_and_idle_expires_it(logged_in):
     client, session, clock, _ = logged_in
     session_id = session["session_id"]
