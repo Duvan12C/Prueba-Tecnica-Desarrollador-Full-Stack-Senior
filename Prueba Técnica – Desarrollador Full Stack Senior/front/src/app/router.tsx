@@ -6,6 +6,9 @@ import AuthLayout from '@/features/auth/layouts/AuthLayout'
 import CreatePage from '@/features/auth/pages/CreatePage'
 import ForgotPasswordPage from '@/features/auth/pages/ForgotPasswordPage'
 import LoginPage from '@/features/auth/pages/LoginPage'
+import AcceptInvitationPage from '@/features/invitations/pages/AcceptInvitationPage'
+import ReceivedInvitationsPage from '@/features/invitations/pages/ReceivedInvitationsPage'
+import { getInvitationReturnPath } from '@/features/invitations/utils/invitationLink'
 import DashboardPage from '@/features/workspaces/pages/DashboardPage'
 import CreateWorkspacePage from '@/features/workspaces/pages/CreateWorkspacePage'
 import WorkspacesPage from '@/features/workspaces/pages/WorkspacesPage'
@@ -23,7 +26,9 @@ function ProtectedWorkspace() {
 
 function GuestLogin() {
   const sessionId = useSyncExternalStore(subscribeToSession, getSessionId)
-  return sessionId ? <Navigate to="/dashboard" replace /> : <LoginPage />
+  const { state } = useLocation()
+  const destination = getInvitationReturnPath(state) ?? '/dashboard'
+  return sessionId ? <Navigate to={destination} replace /> : <LoginPage destination={destination} />
 }
 
 function LegacyDocumentList() {
@@ -53,7 +58,9 @@ function AuthRoutes() {
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           </Route>
           <Route path="/register" element={<CreatePage />} />
+          <Route path="/invitations/accept" element={<AcceptInvitationPage />} />
           <Route element={<ProtectedWorkspace />}>
+            <Route path="/invitations" element={<ReceivedInvitationsPage />} />
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/workspaces" element={<WorkspacesPage />} />
             <Route path="/workspaces/:workspaceId" element={<WorkspaceDocumentsPage />} />

@@ -1,12 +1,13 @@
 import { useState, type FormEvent } from 'react'
 import { Icon } from '@iconify/react'
-import { Link, useNavigate } from 'react-router'
+import { Link, useLocation, useNavigate } from 'react-router'
 import { useLogin } from '@/features/auth/hooks/useLogin'
 import Button from '@/shared/components/Button'
 import Input from '@/shared/components/Input'
 
-function LoginPage() {
+function LoginPage({ destination }: { destination: string }) {
     const navigate = useNavigate()
+    const { state } = useLocation()
     const [showPassword, setShowPassword] = useState(false)
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
@@ -15,7 +16,7 @@ function LoginPage() {
     async function handleSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault()
         const session = await submitLogin({ email, password })
-        if (session) navigate('/dashboard', { replace: true })
+        if (session) navigate(destination, { replace: true })
     }
 
     return (
@@ -104,7 +105,7 @@ function LoginPage() {
                 </Link>
                 <p className="mt-3 text-sm text-secondary-600">
                     ¿No tienes cuenta?{' '}
-                    <Link to="/register" className="font-medium text-primary-700 hover:text-primary-800">
+                    <Link to="/register" state={state} className="font-medium text-primary-700 hover:text-primary-800">
                         Crear cuenta
                     </Link>
                 </p>

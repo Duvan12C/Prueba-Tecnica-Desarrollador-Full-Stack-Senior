@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { Icon } from '@iconify/react'
-import { Link, useParams } from 'react-router'
+import { Link, useParams, useSearchParams } from 'react-router'
 import emptyIllustration from '@/assets/Empty-amico.svg'
 import CreateDocumentDialog from '@/features/documents/components/CreateDocumentDialog'
 import { useDocuments } from '@/features/documents/hooks/useDocuments'
 import { getSessionUserId } from '@/features/auth/session/sessionToken'
+import WorkspaceInvitationDialog from '@/features/invitations/components/WorkspaceInvitationDialog'
 import type { DocumentListItem } from '@/features/documents/types/document.types'
 import { useWorkspaceCapabilities } from '@/features/workspaces/hooks/useWorkspaceCapabilities'
 import Button from '@/shared/components/Button'
@@ -23,6 +24,7 @@ function documentDate(document: DocumentListItem) {
 function WorkspaceDocuments({ workspaceId }: { workspaceId: number }) {
     const { catalog, loadError, addDocument } = useDocuments(workspaceId)
     const { canCreateWorkspace, error: permissionError } = useWorkspaceCapabilities()
+    const [searchParams, setSearchParams] = useSearchParams()
     const [query, setQuery] = useState('')
     const [period, setPeriod] = useState(0)
     const [now] = useState(Date.now)
@@ -33,6 +35,7 @@ function WorkspaceDocuments({ workspaceId }: { workspaceId: number }) {
     const workspace = catalog?.workspace
     const isOwner = !!workspace && workspace.owner_user_id === getSessionUserId()
     const canCreate = isOwner && canCreateWorkspace
+    const invitationStep = searchParams.get('invitar')
     const isCatalogEmpty = catalog?.documents.length === 0
     const search = query.trim().toLocaleLowerCase()
     const from = now - period * dayInMs
@@ -44,6 +47,13 @@ function WorkspaceDocuments({ workspaceId }: { workspaceId: number }) {
         const difference = documentDate(second).getTime() - documentDate(first).getTime()
         return order === 'oldest' ? -difference : difference
     })
+
+    function setInvitationOpen(open: boolean) {
+        const params = new URLSearchParams(searchParams)
+        if (open) params.set('invitar', '1')
+        else params.delete('invitar')
+        setSearchParams(params, { replace: true })
+    }
 
     return (
         <section aria-labelledby="documents-title" className="mx-auto max-w-7xl space-y-5">
@@ -62,9 +72,15 @@ function WorkspaceDocuments({ workspaceId }: { workspaceId: number }) {
                     )}
                 </div>
                 {canCreate && (
-                    <Button onClick={() => setShowCreateDialog(true)} startIcon={<Icon icon="solar:add-circle-linear" width="20" />}>
-                        Nuevo documento
-                    </Button>
+                    <div className="flex flex-wrap gap-2">
+                        <Button variant="outline" onClick={() => setInvitationOpen(true)}
+                            startIcon={<Icon icon="tabler:user-plus" width="19" />}>
+                            Invitar personas
+                        </Button>
+                        <Button onClick={() => setShowCreateDialog(true)} startIcon={<Icon icon="solar:add-circle-linear" width="20" />}>
+                            Nuevo documento
+                        </Button>
+                    </div>
                 )}
             </header>
 
@@ -140,6 +156,15 @@ function WorkspaceDocuments({ workspaceId }: { workspaceId: number }) {
                 <Card className="rounded-xl border border-neutral-100 bg-white p-8 text-center text-sm text-secondary-700">
                     No hay documentos que coincidan con los filtros.
                 </Card>
+            )}
+
+            {canCreate && workspace && (invitationStep === 'nuevo' || invitationStep === '1') && (
+                <WorkspaceInvitationDialog
+                    workspaceId={workspace.id}
+                    workspaceName={workspace.name}
+                    afterCreation={invitationStep === 'nuevo'}
+                    onDismiss={() => setInvitationOpen(false)}
+                />
             )}
 
             {showCreateDialog && canCreate && workspace && (

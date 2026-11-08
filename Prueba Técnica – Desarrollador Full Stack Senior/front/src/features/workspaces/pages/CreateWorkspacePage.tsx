@@ -28,7 +28,7 @@ export default function CreateWorkspacePage() {
         if (isSaving || !canCreateWorkspace || !trimmedName || trimmedName.length > MAX_NAME_LENGTH) return
 
         const workspace = await submit({ name: trimmedName, description: trimmedDescription || null, ...appearance })
-        if (workspace) navigate(`/workspaces/${workspace.id}`, { replace: true })
+        if (workspace) navigate(`/workspaces/${workspace.id}?invitar=nuevo`, { replace: true })
     }
 
     return (

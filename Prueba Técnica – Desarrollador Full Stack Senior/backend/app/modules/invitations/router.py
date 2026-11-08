@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -7,9 +7,13 @@ from app.core.dependencies import get_current_user
 from app.modules.users.models import User
 
 from app.modules.invitations.schemas import (
+    ReceivedWorkspaceInvitation,
     SpaceWorkInvitationAcceptRequest,
     SpaceWorkInvitationCreateRequest,
-    SpaceWorkInvitationResponse
+    SpaceWorkInvitationResponse,
+    WorkspaceInvitationBatchRequest,
+    WorkspaceInvitationBatchResponse,
+    WorkspaceInvitationCandidate,
 )
 from app.modules.invitations.service import SpaceWorkInvitationService
 from app.modules.invitations.repository import SpaceWorkInvitationRepository
@@ -23,6 +27,54 @@ router = APIRouter(
     tags=["Invitations"],
     responses=ERROR_RESPONSES,
 )
+
+
+@router.get("/candidates", response_model=ApiResponse[list[WorkspaceInvitationCandidate]], summary="Buscar cuentas para invitar")
+def search_candidates(
+    space_work_id: int = Query(gt=0),
+    q: str = Query(min_length=2, max_length=150),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    candidates = SpaceWorkInvitationService(SpaceWorkInvitationRepository(db)).search_candidates(
+        space_work_id, current_user.id, q,
+    )
+    return ApiResponse[list[WorkspaceInvitationCandidate]](success=True, message="Cuentas disponibles", data=candidates)
+
+
+@router.post(
+    "/send",
+    response_model=ApiResponse[WorkspaceInvitationBatchResponse],
+    status_code=status.HTTP_201_CREATED,
+    summary="Invitar cuentas registradas al espacio",
+)
+def send_invitations(
+    data: WorkspaceInvitationBatchRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    count = SpaceWorkInvitationService(SpaceWorkInvitationRepository(db)).send_invitations(data, current_user.id)
+    return ApiResponse[WorkspaceInvitationBatchResponse](
+        success=True, message="Invitaciones enviadas", data=WorkspaceInvitationBatchResponse(sent_count=count),
+    )
+
+
+@router.get("/received", response_model=ApiResponse[list[ReceivedWorkspaceInvitation]], summary="Consultar mis invitaciones")
+def list_received(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    invitations = SpaceWorkInvitationService(SpaceWorkInvitationRepository(db)).list_received(current_user)
+    return ApiResponse[list[ReceivedWorkspaceInvitation]](success=True, message="Invitaciones recibidas", data=invitations)
+
+
+@router.post("/{invitation_id}/accept", response_model=ApiResponse[SpaceWorkInvitationResponse], summary="Aceptar una invitación recibida")
+def accept_received(
+    invitation_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    invitation = SpaceWorkInvitationService(SpaceWorkInvitationRepository(db)).accept_received_invitation(
+        invitation_id, current_user,
+    )
+    return ApiResponse[SpaceWorkInvitationResponse](success=True, message="Invitación aceptada", data=invitation)
 
 
 @router.get(

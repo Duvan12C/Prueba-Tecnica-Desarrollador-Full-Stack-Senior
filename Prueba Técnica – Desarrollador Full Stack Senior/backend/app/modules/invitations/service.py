@@ -3,12 +3,16 @@ import secrets
 import hashlib
 
 from app.modules.invitations.schemas import (
+    ReceivedWorkspaceInvitation,
     SpaceWorkInvitationCreateRequest,
-    SpaceWorkInvitationResponse
+    SpaceWorkInvitationResponse,
+    WorkspaceInvitationBatchRequest,
+    WorkspaceInvitationCandidate,
 )
 from app.modules.invitations.models import SpaceWorkInvitation
 from app.modules.invitations.repository import SpaceWorkInvitationRepository
 from app.modules.invitations.enums import InvitationStatus
+from app.modules.users.models import User
 from app.shared.exceptions import ConflictError, ForbiddenError, ResourceGoneError, ResourceNotFoundError
 
 
@@ -23,30 +27,51 @@ class SpaceWorkInvitationService:
         invited_by_user_id: int
     ) -> SpaceWorkInvitationResponse:
 
-        if not self.repository.can_manage_space(data.space_work_id, invited_by_user_id):
-            raise ForbiddenError("No tienes permiso para invitar usuarios a este espacio")
+        self._require_manager(data.space_work_id, invited_by_user_id)
+        recipient = self.repository.get_eligible_recipient_by_email(data.space_work_id, str(data.email).lower())
+        if recipient is None:
+            raise ConflictError("La cuenta no está disponible para invitar o ya tiene una invitación pendiente")
 
-        token = secrets.token_urlsafe(32)
-        token_hash = hashlib.sha256(token.encode()).hexdigest()
-
-        invitation = SpaceWorkInvitation(
-            space_work_id=data.space_work_id,
-            email=str(data.email).lower(),
-            invited_user_id=self.repository.get_user_id_by_email(str(data.email).lower()),
-            invited_by_user_id=invited_by_user_id,
-            token_hash=token_hash,
-            status=InvitationStatus.PENDING,
-            expires_at=(datetime.now(timezone.utc) + timedelta(days=7)).replace(tzinfo=None)
-        )
-
+        invitation, token = self._new_invitation(data.space_work_id, invited_by_user_id, recipient)
         created_invitation = self.repository.create(invitation)
 
         response = SpaceWorkInvitationResponse.model_validate(created_invitation)
         return response.model_copy(update={"token": token})
 
-    def accept_invitation(self, token: str, user) -> SpaceWorkInvitationResponse:
+    def search_candidates(self, space_work_id: int, user_id: int, query: str) -> list[WorkspaceInvitationCandidate]:
+        if not self.repository.can_manage_space(space_work_id, user_id):
+            raise ForbiddenError("No tienes permiso para invitar usuarios a este espacio")
+
+        query = query.strip().lower()
+        if len(query) < 2:
+            return []
+        users = self.repository.search_candidates(space_work_id, query)
+        return [WorkspaceInvitationCandidate.model_validate(user) for user in users]
+
+    def send_invitations(self, data: WorkspaceInvitationBatchRequest, user_id: int) -> int:
+        self._require_manager(data.space_work_id, user_id)
+        user_ids = set(data.user_ids)
+        recipients = self.repository.get_eligible_recipients(data.space_work_id, user_ids)
+        if len(recipients) != len(user_ids):
+            raise ConflictError("Una o más cuentas ya pertenecen al espacio, tienen una invitación pendiente o no están disponibles")
+
+        invitations = [self._new_invitation(data.space_work_id, user_id, recipient)[0] for recipient in recipients]
+        self.repository.create_batch(invitations)
+        return len(invitations)
+
+    def list_received(self, user: User) -> list[ReceivedWorkspaceInvitation]:
+        return [ReceivedWorkspaceInvitation.model_validate(row) for row in self.repository.list_received(user)]
+
+    def accept_received_invitation(self, invitation_id: int, user: User) -> SpaceWorkInvitationResponse:
+        invitation = self.repository.get_received_invitation(invitation_id, user)
+        return self._accept(invitation, user)
+
+    def accept_invitation(self, token: str, user: User) -> SpaceWorkInvitationResponse:
         token_hash = hashlib.sha256(token.encode()).hexdigest()
         invitation = self.repository.get_by_token_hash(token_hash)
+        return self._accept(invitation, user)
+
+    def _accept(self, invitation: SpaceWorkInvitation | None, user: User) -> SpaceWorkInvitationResponse:
         if invitation is None:
             raise ResourceNotFoundError("Invitación no encontrada")
         if invitation.status != InvitationStatus.PENDING:
@@ -64,6 +89,24 @@ class SpaceWorkInvitationService:
 
         accepted = self.repository.accept(invitation, user)
         return SpaceWorkInvitationResponse.model_validate(accepted)
+
+    def _require_manager(self, space_work_id: int, user_id: int) -> None:
+        if not self.repository.can_manage_space(space_work_id, user_id) or not self.repository.lock_active_workspace(space_work_id):
+            raise ForbiddenError("No tienes permiso para invitar usuarios a este espacio")
+
+    @staticmethod
+    def _new_invitation(space_work_id: int, invited_by_user_id: int, recipient: User) -> tuple[SpaceWorkInvitation, str]:
+        token = secrets.token_urlsafe(32)
+        invitation = SpaceWorkInvitation(
+            space_work_id=space_work_id,
+            email=recipient.email.lower(),
+            invited_user_id=recipient.id,
+            invited_by_user_id=invited_by_user_id,
+            token_hash=hashlib.sha256(token.encode()).hexdigest(),
+            status=InvitationStatus.PENDING,
+            expires_at=(datetime.now(timezone.utc) + timedelta(days=7)).replace(tzinfo=None),
+        )
+        return invitation, token
 
     def list_pending_invitations(
         self,

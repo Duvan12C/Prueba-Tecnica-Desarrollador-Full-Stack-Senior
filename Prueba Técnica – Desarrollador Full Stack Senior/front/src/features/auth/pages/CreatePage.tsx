@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { Icon } from '@iconify/react'
-import { Link } from 'react-router'
+import { Link, useLocation } from 'react-router'
 import logo from '@/assets/docspace-imagotipo-vertical-oscuro.svg'
 import { useSignUp } from '@/features/auth/hooks/signUp'
 import type { SignUpCredentials } from '@/features/auth/types/auth.types'
@@ -16,6 +16,7 @@ const roles = [
 const labelClass = 'mb-1.5 block text-xs font-semibold uppercase tracking-wide text-secondary-900'
 
 function CreatePage() {
+    const { state } = useLocation()
     const [name, setName] = useState('')
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
@@ -154,7 +155,7 @@ function CreatePage() {
 
                     <p className="mt-5 border-t border-neutral-100 pt-4 text-center text-sm text-secondary-600">
                         ¿Ya tienes una cuenta?{' '}
-                        <Link to="/login" className="font-semibold text-primary-700 hover:underline">Inicia sesión</Link>
+                        <Link to="/login" state={state} className="font-semibold text-primary-700 hover:underline">Inicia sesión</Link>
                     </p>
                 </section>
             </Card>
