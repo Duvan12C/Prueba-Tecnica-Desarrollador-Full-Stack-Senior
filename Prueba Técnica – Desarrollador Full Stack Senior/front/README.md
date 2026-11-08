@@ -41,4 +41,14 @@ Cada funcionalidad tiene carpetas `api`, `components`, `hooks`, `pages`, `schema
 - `shared/` es para piezas que realmente se reutilicen entre funcionalidades. La lógica de negocio específica se queda junto a su funcionalidad.
 - No se crea una capa `service.ts` por defecto. En el frontend, las funciones HTTP viven en `api`; los hooks coordinan la interacción con React. Si más adelante la lógica de datos crece, se puede incorporar TanStack Query sin reorganizar las funcionalidades.
 
-El editor actual es una muestra de Tiptap y todavía no persiste documentos en el backend.
+## Colaboración en tiempo real
+
+El editor Tiptap se conecta al WebSocket del documento a través del proxy de Vite. Los cambios se sincronizan en un borrador compartido. **Guardar versión** crea una entrada de historial y auditoría con el contenido sincronizado. Quienes tienen lectura reciben los cambios y los avisos de guardado.
+
+En la carpeta `backend`, aplica la migración del borrador antes de iniciar la API.
+
+```powershell
+.\.venv\Scripts\python.exe -m alembic upgrade head
+```
+
+Con la API en ejecución, abre el mismo documento desde dos sesiones con permisos distintos. Escribe desde la cuenta con edición, comprueba que la otra recibe el cambio y pulsa **Guardar versión** para comprobar el aviso y el historial.
