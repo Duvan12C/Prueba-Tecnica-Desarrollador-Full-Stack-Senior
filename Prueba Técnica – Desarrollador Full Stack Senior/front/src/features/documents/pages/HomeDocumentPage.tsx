@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { Icon } from '@iconify/react'
+import { useNavigate, useSearchParams } from 'react-router'
 import emptyIllustration from '@/assets/Empty-amico.svg'
 import CreateDocumentDialog from '@/features/documents/components/CreateDocumentDialog'
 import { useDocuments } from '@/features/documents/hooks/useDocuments'
 import { getSessionUserId } from '@/features/auth/session/sessionToken'
+import { useWorkspaceCapabilities } from '@/features/workspaces/hooks/useWorkspaceCapabilities'
 import Button from '@/shared/components/Button'
 import Card from '@/shared/components/Card'
 import Input from '@/shared/components/Input'
@@ -12,13 +14,17 @@ const dateFormat = new Intl.DateTimeFormat('es', { dateStyle: 'medium' })
 
 export default function HomeDocumentPage() {
     const { catalog, loadError, addDocument } = useDocuments()
+    const { canCreateWorkspace, error: permissionError } = useWorkspaceCapabilities()
+    const navigate = useNavigate()
+    const [searchParams, setSearchParams] = useSearchParams()
     const [query, setQuery] = useState('')
-    const [space, setSpace] = useState('')
     const [view, setView] = useState<'grid' | 'list'>('grid')
     const [showCreateDialog, setShowCreateDialog] = useState(false)
 
     const userId = getSessionUserId()
     const ownedSpaces = catalog?.spaces.filter(({ owner_user_id }) => owner_user_id === userId) ?? []
+    const requestedSpace = searchParams.get('space') ?? ''
+    const space = catalog?.spaces.some(({ id }) => String(id) === requestedSpace) ? requestedSpace : ''
     const canCreate = ownedSpaces.length > 0
     const isCatalogEmpty = catalog?.documents.length === 0
     const search = query.trim().toLocaleLowerCase()
@@ -26,6 +32,13 @@ export default function HomeDocumentPage() {
         (!space || String(document.space_work_id) === space) &&
         document.title.toLocaleLowerCase().includes(search),
     )
+
+    function setSpace(spaceId: string) {
+        const nextParams = new URLSearchParams(searchParams)
+        if (spaceId) nextParams.set('space', spaceId)
+        else nextParams.delete('space')
+        setSearchParams(nextParams, { replace: true })
+    }
 
     return (
         <section aria-labelledby="documents-title" className="mx-auto max-w-7xl space-y-5">
@@ -38,13 +51,24 @@ export default function HomeDocumentPage() {
                         Consulta y organiza los documentos a los que tienes acceso en tus espacios de trabajo.
                     </p>
                 </div>
-                {canCreate && (
-                    <Button onClick={() => setShowCreateDialog(true)} startIcon={<Icon icon="solar:add-circle-linear" width="20" />}>
-                        Nuevo documento
-                    </Button>
-                )}
+                <div className="flex flex-wrap gap-2">
+                    {canCreateWorkspace && (
+                        <Button variant={canCreate ? 'outline' : 'primary'} onClick={() => navigate('/workspaces/new')}
+                            startIcon={<Icon icon="solar:folder-add-linear" width="20" />}>
+                            Crear espacio de trabajo
+                        </Button>
+                    )}
+                    {canCreate && (
+                        <Button onClick={() => setShowCreateDialog(true)} startIcon={<Icon icon="solar:add-circle-linear" width="20" />}>
+                            Nuevo documento
+                        </Button>
+                    )}
+                </div>
             </header>
 
+            {!loadError && permissionError && (
+                <p role="alert" className="rounded-xl bg-warning-bg p-3 text-sm text-warning-text">{permissionError}</p>
+            )}
             <Card className="flex flex-wrap items-center gap-3 rounded-xl border border-neutral-100 bg-white p-3">
                 <Input
                     type="search"

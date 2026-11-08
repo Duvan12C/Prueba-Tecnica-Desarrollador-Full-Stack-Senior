@@ -13,9 +13,12 @@ class SpaceWorkService:
     def __init__(self, repository: SpaceWorkRepository):
         self.repository = repository
 
+    def can_create(self, user_id: int) -> bool:
+        return self.repository.is_manager(user_id)
+
     def create_space_work(self, data: SpaceWorkCreateRequest, owner_user_id: int) -> SpaceWorkResponse:
 
-        if not self.repository.is_manager(owner_user_id):
+        if not self.can_create(owner_user_id):
             raise ForbiddenError("Solo un Gestor puede crear un espacio de trabajo")
 
         space_work = SpaceWork(

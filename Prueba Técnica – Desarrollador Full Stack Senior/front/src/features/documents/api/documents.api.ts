@@ -1,13 +1,10 @@
 import { apiClient } from '@/shared/api/client'
 import type { ApiResponse } from '@/shared/api/api.types'
 import type { CreateDocumentRequest, DocumentCatalog, DocumentListItem } from '@/features/documents/types/document.types'
-import type { Workspace } from '@/features/workspaces/types/workspace.types'
+import { listWorkspaces } from '@/features/workspaces/api/workspaces.api'
 
 export async function loadDocuments(signal: AbortSignal): Promise<DocumentCatalog> {
-    const { data: spacesResponse } = await apiClient.get<ApiResponse<Workspace[]>>('/space_work', { signal })
-    if (!spacesResponse.success || !spacesResponse.data) throw new Error(spacesResponse.message)
-
-    const spaces = spacesResponse.data
+    const spaces = await listWorkspaces(signal)
     const documents = await Promise.all(spaces.map(async (space) => {
         const { data } = await apiClient.get<ApiResponse<DocumentListItem[]>>('/documents', {
             params: { space_work_id: space.id },

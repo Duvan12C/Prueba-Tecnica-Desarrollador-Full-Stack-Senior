@@ -8,6 +8,7 @@ from app.modules.spaceswork.service import SpaceWorkService
 from app.modules.spaceswork.repository import SpaceWorkRepository
 from app.shared.api_response import ApiResponse
 from app.modules.spaceswork.schemas import (
+    SpaceWorkCapabilities,
     SpaceWorkCreateRequest,
     SpaceWorkMemberResponse,
     SpaceWorkResponse
@@ -20,6 +21,23 @@ router = APIRouter(
     tags=["SpaceWork"],
     responses=ERROR_RESPONSES,
 )
+
+
+@router.get(
+    "/capabilities",
+    response_model=ApiResponse[SpaceWorkCapabilities],
+    summary="Consultar permisos sobre espacios de trabajo",
+)
+def get_capabilities(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    service = SpaceWorkService(SpaceWorkRepository(db))
+    return ApiResponse[SpaceWorkCapabilities](
+        success=True,
+        message="Permisos sobre espacios de trabajo",
+        data=SpaceWorkCapabilities(can_create=service.can_create(current_user.id)),
+    )
 
 
 @router.get(

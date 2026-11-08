@@ -7,6 +7,7 @@ import CreatePage from '@/features/auth/pages/CreatePage'
 import ForgotPasswordPage from '@/features/auth/pages/ForgotPasswordPage'
 import LoginPage from '@/features/auth/pages/LoginPage'
 import DashboardPage from '@/features/workspaces/pages/DashboardPage'
+import CreateWorkspacePage from '@/features/workspaces/pages/CreateWorkspacePage'
 import HomeDocumentPage from '@/features/documents/pages/HomeDocumentPage'
 import { useSessionActivity } from '@/features/auth/hooks/useSessionActivity'
 import { getSessionId, subscribeToSession } from '@/features/auth/session/sessionToken'
@@ -44,6 +45,7 @@ function AuthRoutes() {
           <Route element={<ProtectedWorkspace />}>
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/document" element={<HomeDocumentPage />} />
+            <Route path="/workspaces/new" element={<CreateWorkspacePage />} />
           </Route>
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>

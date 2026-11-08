@@ -1,10 +1,13 @@
 from datetime import datetime
+from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, StringConstraints
 
 
 class SpaceWorkCreateRequest(BaseModel):
-    name: str = Field(min_length=1, max_length=150, description="Nombre del espacio de trabajo")
+    name: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=150)] = Field(
+        description="Nombre del espacio de trabajo"
+    )
     description: str | None = Field(default=None, description="Descripción opcional del espacio")
 
 
@@ -15,6 +18,10 @@ class SpaceWorkResponse(BaseModel):
     owner_user_id: int
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class SpaceWorkCapabilities(BaseModel):
+    can_create: bool
 
 
 class SpaceWorkMemberResponse(BaseModel):
