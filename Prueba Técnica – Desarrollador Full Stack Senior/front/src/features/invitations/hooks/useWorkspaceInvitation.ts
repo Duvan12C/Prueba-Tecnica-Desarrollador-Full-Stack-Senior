@@ -66,7 +66,7 @@ export function useWorkspaceInvitation(workspaceId: number) {
     }
 
     async function invite() {
-        if (!selected.length || isSending) return
+        if (!selected.length || isSending) return false
         setIsSending(true)
         setSentCount(null)
         setError(null)
@@ -75,8 +75,10 @@ export function useWorkspaceInvitation(workspaceId: number) {
             setSelected([])
             updateSearch('')
             setSentCount(count)
+            return true
         } catch (error) {
             setError(getProtectedApiErrorMessage(error, 'No se pudieron enviar las invitaciones.'))
+            return false
         } finally {
             setIsSending(false)
         }

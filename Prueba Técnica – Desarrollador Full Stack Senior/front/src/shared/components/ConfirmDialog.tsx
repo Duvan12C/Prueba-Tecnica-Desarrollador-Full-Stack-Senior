@@ -7,13 +7,14 @@ interface ConfirmDialogProps {
     title: string
     description: string
     confirmLabel: string
+    cancelLabel?: string
     icon: ReactNode
     destructive?: boolean
     onCancel: () => void
     onConfirm: () => void
 }
 
-function DialogContent({ title, description, confirmLabel, icon, destructive, onCancel, onConfirm }: Omit<ConfirmDialogProps, 'open'>) {
+function DialogContent({ title, description, confirmLabel, cancelLabel = 'Cancelar', icon, destructive, onCancel, onConfirm }: Omit<ConfirmDialogProps, 'open'>) {
     const dialog = useRef<HTMLDialogElement>(null)
     const cancelButton = useRef<HTMLButtonElement>(null)
     const titleId = useId()
@@ -62,7 +63,7 @@ function DialogContent({ title, description, confirmLabel, icon, destructive, on
                     <h2 id={titleId} className="font-heading text-xl font-bold text-secondary-950">{title}</h2>
                     <p id={descriptionId} className="mt-2 text-sm leading-relaxed text-secondary-700">{description}</p>
                     <div className="mt-6 flex flex-wrap justify-end gap-2">
-                        <Button ref={cancelButton} variant="outline" disabled={!isPresent} onClick={onCancel}>Cancelar</Button>
+                        <Button ref={cancelButton} variant="outline" disabled={!isPresent} onClick={onCancel}>{cancelLabel}</Button>
                         <Button variant={destructive ? 'danger' : 'primary'} disabled={!isPresent} onClick={onConfirm}>{confirmLabel}</Button>
                     </div>
                 </motion.div>

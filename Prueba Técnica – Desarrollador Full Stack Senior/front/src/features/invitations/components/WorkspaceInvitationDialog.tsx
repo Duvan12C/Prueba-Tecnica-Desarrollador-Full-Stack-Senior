@@ -9,10 +9,12 @@ interface WorkspaceInvitationDialogProps {
     workspaceId: number
     workspaceName: string
     afterCreation: boolean
+    dismissLabel?: string
+    onSent?: () => void
     onDismiss: () => void
 }
 
-export default function WorkspaceInvitationDialog({ workspaceId, workspaceName, afterCreation, onDismiss }: WorkspaceInvitationDialogProps) {
+export default function WorkspaceInvitationDialog({ workspaceId, workspaceName, afterCreation, dismissLabel = 'Ir a documentos', onSent, onDismiss }: WorkspaceInvitationDialogProps) {
     const dialog = useRef<HTMLDialogElement>(null)
     const reducedMotion = useReducedMotion()
     const {
@@ -61,7 +63,8 @@ export default function WorkspaceInvitationDialog({ workspaceId, workspaceName, 
                         value={search} onChange={(event) => updateSearch(event.target.value)} disabled={isSending}
                         placeholder="Buscar usuarios…" containerClassName="w-full sm:w-auto sm:flex-1"
                         startIcon={<Icon icon="tabler:user-search" width="19" />} />
-                    <Button onClick={invite} disabled={!selected.length} loading={isSending} loadingText="Invitando…"
+                    <Button onClick={async () => { if (await invite()) onSent?.() }}
+                        disabled={!selected.length} loading={isSending} loadingText="Invitando…"
                         startIcon={<Icon icon="tabler:user-plus" width="19" />}>
                         {selected.length ? `Invitar (${selected.length})` : 'Invitar'}
                     </Button>
@@ -113,7 +116,7 @@ export default function WorkspaceInvitationDialog({ workspaceId, workspaceName, 
                 )}
                 <div className="flex justify-end border-t border-neutral-100 pt-3">
                     <Button variant="outline" disabled={isSending} onClick={onDismiss}>
-                        {afterCreation && sentCount === null ? 'Omitir por ahora' : 'Ir a documentos'}
+                        {afterCreation && sentCount === null ? 'Omitir por ahora' : dismissLabel}
                     </Button>
                 </div>
             </motion.div>

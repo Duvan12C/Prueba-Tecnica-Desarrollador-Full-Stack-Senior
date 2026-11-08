@@ -14,6 +14,11 @@ export async function listWorkspaceMembers(workspaceId: number, signal: AbortSig
     return data.data
 }
 
+export async function removeWorkspaceMember(workspaceId: number, userId: number): Promise<void> {
+    const { data } = await apiClient.delete<ApiResponse<null>>(`/space_work/${workspaceId}/members/${userId}`)
+    if (!data.success) throw new Error(data.message)
+}
+
 export async function archiveWorkspace(workspaceId: number): Promise<void> {
     const { data } = await apiClient.delete<ApiResponse<null>>(`/space_work/${workspaceId}`)
     if (!data.success) throw new Error(data.message)

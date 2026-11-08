@@ -1,15 +1,9 @@
 import { Icon } from '@iconify/react'
 import { useNavigate, useOutletContext } from 'react-router'
 import type { InvitationInbox } from '@/features/invitations/hooks/useReceivedInvitations'
+import { formatInvitationExpiry } from '@/features/invitations/utils/formatInvitationExpiry'
 import Button from '@/shared/components/Button'
 import Card from '@/shared/components/Card'
-
-const dateFormat = new Intl.DateTimeFormat('es-SV', { dateStyle: 'medium', timeStyle: 'short' })
-
-function formatExpiry(value: string) {
-    const utcValue = /(?:Z|[+-]\d{2}:\d{2})$/.test(value) ? value : `${value}Z`
-    return dateFormat.format(new Date(utcValue))
-}
 
 export default function ReceivedInvitationsPage() {
     const { invitations, loadError, acceptError, accepting, accept } = useOutletContext<InvitationInbox>()
@@ -48,7 +42,7 @@ export default function ReceivedInvitationsPage() {
                                     <div className="min-w-0">
                                         <h2 className="font-heading font-semibold wrap-anywhere text-secondary-950">{invitation.workspace_name}</h2>
                                         <p className="mt-1 text-sm wrap-anywhere text-secondary-700">Te invitó {invitation.inviter_name}</p>
-                                        <p className="mt-1 text-xs text-secondary-600">Vence el {formatExpiry(invitation.expires_at)}</p>
+                                        <p className="mt-1 text-xs text-secondary-600">Vence el {formatInvitationExpiry(invitation.expires_at)}</p>
                                     </div>
                                 </div>
                                 <Button loading={accepting === invitation.id} loadingText="Aceptando…"

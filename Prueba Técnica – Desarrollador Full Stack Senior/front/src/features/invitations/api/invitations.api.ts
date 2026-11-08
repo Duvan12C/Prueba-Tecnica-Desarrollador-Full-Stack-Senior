@@ -37,3 +37,17 @@ export async function acceptReceivedInvitation(id: number): Promise<WorkspaceInv
     if (!data.success || !data.data) throw new Error(data.message)
     return data.data
 }
+
+export async function listPendingInvitations(workspaceId: number, signal: AbortSignal): Promise<WorkspaceInvitation[]> {
+    const { data } = await apiClient.get<ApiResponse<WorkspaceInvitation[]>>('/invitations', {
+        params: { space_work_id: workspaceId },
+        signal,
+    })
+    if (!data.success || !data.data) throw new Error(data.message)
+    return data.data
+}
+
+export async function cancelWorkspaceInvitation(invitationId: number): Promise<void> {
+    const { data } = await apiClient.delete<ApiResponse<WorkspaceInvitation>>(`/invitations/${invitationId}`)
+    if (!data.success) throw new Error(data.message)
+}
