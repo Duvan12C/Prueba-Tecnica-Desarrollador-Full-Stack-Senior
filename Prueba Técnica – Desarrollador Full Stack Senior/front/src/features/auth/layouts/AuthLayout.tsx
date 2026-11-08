@@ -1,12 +1,12 @@
-import { motion } from 'motion/react'
 import { Outlet } from 'react-router'
 import logo from '@/assets/docspace-imagotipo-horizontal-oscuro.svg'
 import background from '@/assets/docspace-patron-oscuro.svg'
+import Card from '@/shared/components/Card'
 
 function AuthLayout() {
   return (
     <main className="grid min-h-dvh place-items-center bg-neutral-50 p-4 md:p-8">
-      <motion.section
+      <Card
         initial={{ opacity: 0, y: 18, scale: 0.985 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.45, ease: 'easeOut' }}
@@ -44,7 +44,7 @@ function AuthLayout() {
             <Outlet />
           </div>
         </div>
-      </motion.section>
+      </Card>
     </main>
   )
 }
