@@ -1,0 +1,57 @@
+name: docspace
+
+services:
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: ${DOCSPACE_ACCEPT_SQL_EULA:?Set DOCSPACE_ACCEPT_SQL_EULA in .env}
+      MSSQL_PID: Developer
+      MSSQL_SA_PASSWORD: ${DOCSPACE_SQL_PASSWORD:?Set DOCSPACE_SQL_PASSWORD in .env}
+    volumes:
+      - sql_data:/var/opt/mssql
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - 'SQLCMDPASSWORD="$${MSSQL_SA_PASSWORD}" /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -C -b -Q "SELECT 1" -o /dev/null'
+      interval: 5s
+      timeout: 5s
+      retries: 24
+      start_period: 20s
+
+  api:
+    build:
+      context: ./Prueba Técnica – Desarrollador Full Stack Senior/backend
+      args:
+        ACCEPT_EULA: ${DOCSPACE_ACCEPT_SQL_EULA:?Set DOCSPACE_ACCEPT_SQL_EULA in .env}
+    environment:
+      DOCSPACE_SQL_PASSWORD: ${DOCSPACE_SQL_PASSWORD:?Set DOCSPACE_SQL_PASSWORD in .env}
+      SECRET_KEY: ${DOCSPACE_SECRET_KEY:?Set DOCSPACE_SECRET_KEY in .env}
+    depends_on:
+      db:
+        condition: service_healthy
+        restart: true
+    ports:
+      - "127.0.0.1:${DOCSPACE_API_PORT:-8000}:8000"
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "from urllib.request import urlopen; urlopen('http://127.0.0.1:8000/openapi.json', timeout=3).close()"
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  web:
+    build:
+      context: ./Prueba Técnica – Desarrollador Full Stack Senior/front
+    depends_on:
+      api:
+        condition: service_healthy
+        restart: true
+    ports:
+      - "127.0.0.1:${DOCSPACE_WEB_PORT:-5173}:80"
+
+volumes:
+  sql_data:

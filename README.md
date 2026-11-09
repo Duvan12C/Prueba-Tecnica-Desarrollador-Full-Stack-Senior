@@ -45,7 +45,26 @@ En el backend, los routers reciben las peticiones y aplican las dependencias de 
 
 El servidor verifica la membresía activa del espacio y el permiso sobre el documento en cada operación protegida. Los permisos son lectura, edición y administración. Una invitación da acceso al espacio una vez aceptada. El Gestor propietario y quien tenga administración sobre un documento pueden gestionar sus permisos. La restauración crea una nueva versión y la eliminación es lógica, con su evento de auditoría.
 
-## Preparar el entorno en Windows
+## Arrancar con Docker Compose
+
+Necesitas Docker con Compose y contenedores Linux en un equipo x86-64. En Windows, abre Docker Desktop y espera a que el motor esté en ejecución. Compose prepara el frontend, la API, el controlador ODBC y SQL Server Developer en contenedores. [Requisitos de SQL Server en contenedores](https://learn.microsoft.com/en-us/sql/linux/quickstart-install-connect-docker)
+
+En una instalación nueva, copia `.env.example` como `.env` en la raíz. Usa una contraseña robusta para `DOCSPACE_SQL_PASSWORD` y una clave aleatoria de al menos 32 bytes para `DOCSPACE_SECRET_KEY`. Si aceptas los términos de Microsoft para usar SQL Server Developer y su controlador, pon `DOCSPACE_ACCEPT_SQL_EULA=Y`. El archivo local `.env` está excluido de Git.
+
+Desde la raíz del repositorio, arranca DocSpace con este comando.
+
+```powershell
+docker compose up --build
+```
+
+- [Aplicación](http://127.0.0.1:5173)
+- [Swagger](http://127.0.0.1:8000/docs) · [ReDoc](http://127.0.0.1:8000/redoc)
+
+En el primer arranque se descargan las imágenes, se crea la base `DocSpace` y se aplican las migraciones. Nginx sirve React y reenvía HTTP y WebSocket a FastAPI. El SQL Server de Compose usa un volumen propio y se comunica con la API por la red interna de Docker. Si ya tienes ocupados los puertos 5173 u 8000, puedes elegir otros con `DOCSPACE_WEB_PORT` y `DOCSPACE_API_PORT` en `.env`.
+
+Para detener y retirar los contenedores, ejecuta `docker compose down` desde la raíz. Los datos permanecen en el volumen `sql_data`. Conserva la contraseña de SQL Server mientras reutilices ese volumen.
+
+## Arranque manual en Windows
 
 Verifiqué el proyecto con Python 3.12, Node.js 24 y npm. Para ejecutar la aplicación también se necesita una instancia de SQL Server accesible, una base vacía para una instalación nueva y un controlador ODBC de SQL Server instalado. El ejemplo usa el controlador ODBC 18. [Descarga oficial de Microsoft](https://learn.microsoft.com/en-us/sql/connect/odbc/download-odbc-driver-for-sql-server?view=sql-server-ver18)
 
@@ -93,7 +112,7 @@ if (-not (Test-Path -LiteralPath '.env')) {
 
 En una instalación nueva, deja `VITE_API_URL=http://127.0.0.1:8000` en `front/.env`. Si ya tienes un archivo `.env`, revisa ese valor directamente. El proxy de Vite reenvía tanto HTTP como WebSocket bajo `/api`.
 
-## Arrancar DocSpace
+### Iniciar los servicios manualmente
 
 El arranque actual usa dos terminales. Desde `backend`, ejecuta la API con un solo proceso para compartir la presencia de todos los clientes.
 
@@ -109,17 +128,6 @@ npm run dev -- --host localhost --port 5173 --strictPort
 
 - [Aplicación](http://localhost:5173)
 - [Swagger](http://127.0.0.1:8000/docs), [ReDoc](http://127.0.0.1:8000/redoc) y [OpenAPI](http://127.0.0.1:8000/openapi.json)
-
-### Opciones para el arranque con un solo comando
-
-El arranque conjunto está pendiente. Estas son las dos opciones.
-
-| Opción | Cómo quedaría | Requisitos previos |
-| --- | --- | --- |
-| PowerShell | Un script desde la raíz iniciaría Uvicorn y Vite juntos y cerraría ambos al salir. | Python, Node.js, ODBC y SQL Server configurados en el equipo. |
-| Docker Compose | `docker compose up --build` iniciaría los servicios definidos en el archivo Compose. Puede incluir la API, el frontend y una instancia de SQL Server con datos persistentes. | Docker con Compose. En Windows se puede usar Docker Desktop con WSL 2. |
-
-[Documentación de PowerShell](https://learn.microsoft.com/powershell/module/microsoft.powershell.management/start-process) · [Docker Desktop en Windows](https://docs.docker.com/desktop/setup/install/windows-install/) · [Docker Compose up](https://docs.docker.com/reference/cli/docker/compose/up/)
 
 ## Cuentas de demostración
 
@@ -139,7 +147,13 @@ En una base de desarrollo recién migrada, registra estas dos cuentas desde **Cr
 
 ## Ejecutar las pruebas
 
-Con las dependencias instaladas, ejecuta la suite desde `backend` con un solo comando.
+Si usas Docker, ejecuta la suite desde la raíz. El contenedor de pruebas usa SQLite temporal y puede ejecutarse con los servicios apagados.
+
+```powershell
+docker compose run --build --rm --no-deps -e DATABASE_URL=sqlite+pysqlite:// api python -m pytest -q
+```
+
+Para el entorno manual, ejecuta la suite desde `backend` con las dependencias instaladas.
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest -q
