@@ -4,16 +4,24 @@
 
 La colaboración se desarrolló en `fase-2`, a partir del commit `5e112ae` de `fase-1`. La API ya tenía autenticación, permisos por documento, historial y auditoría. El editor existente usaba Tiptap.
 
-## Agente e instrucciones
+## Agente y solicitudes
 
-Usé Codex para revisar los requisitos, proponer el diseño, implementar el canal y el editor compartido y ejecutar pruebas. La instrucción fue respetar la separación de responsabilidades del proyecto, consultar antes de cambios grandes o delicados y guardar cada bloque en un commit descriptivo.
+Usé Codex para revisar el flujo existente, proponer el diseño, implementar el canal y el editor compartido y ejecutar las pruebas. Estas fueron las instrucciones principales, resumidas en el orden de trabajo.
+
+1. Implementar la Fase 2 sobre el proyecto existente. Respetar la arquitectura de la API y de React, separar responsabilidades, evitar comentarios innecesarios, consultar los cambios grandes o delicados y usar un commit descriptivo por bloque.
+2. Permitir que varias cuentas vean los cambios del mismo documento en tiempo real y sepan quién está conectado. Mantener los permisos, el versionado y la auditoría de la Fase 1.
+3. Tras revisar el guardado automático, explicar primero por qué se estaban creando versiones por unas pocas letras. Cambiarlo a edición compartida con guardado explícito y avisar a los demás cuando se publique una versión. Validar que el resto del flujo siga funcionando.
+4. Documentar el proceso con el agente, las decisiones que se tomaron y cómo se comprobó el resultado.
 
 ## Decisiones y cambios de dirección
 
-- Aprobé reutilizar FastAPI y Tiptap con un WebSocket por documento y controlar la concurrencia mediante una revisión enviada por el cliente. El canal comprueba el acceso antes de enviar el borrador. Solo quien tiene edición o administración puede modificarlo o publicar una versión.
-- La primera propuesta guardaba una versión por cada tanda de cambios. Pedí separar el borrador del historial para que unas cuantas letras no generaran copias completas del documento. El borrador se conserva en una sola fila por documento. El historial y la auditoría se actualizan al pulsar **Guardar versión**. Los demás reciben un aviso.
+- **Aceptado.** Reutilizar FastAPI y Tiptap con un WebSocket por documento. El canal comprueba el acceso antes de enviar el borrador. Quien tiene lectura puede seguir los cambios y la presencia. Editar y publicar requiere edición o administración.
+- **Descartado.** Crear una versión por cada tanda de cambios. En la revisión detecté que hasta unas pocas letras podían generar otra copia completa del documento.
+- **Ajustado tras la revisión.** Separar el borrador del historial. El borrador se conserva en una sola fila por documento. **Guardar versión** publica los cambios pendientes, crea la versión y su evento de auditoría, y avisa a quienes están conectados.
 - Si dos personas escriben sobre la misma revisión, el servidor acepta la primera edición válida y devuelve el estado actual a la segunda. Su borrador local se conserva y la persona puede comparar, ajustar y aplicar su contenido o usar el borrador compartido. Restaurar o guardar por REST un contenido distinto requiere publicar primero un borrador pendiente.
 - La presencia y los avisos se distribuyen en un solo proceso de la API. El borrador vive en la base de datos y se recupera al volver a abrir el documento. La resolución de conflictos es manual.
+
+Las instrucciones y los ajustes anteriores quedaron reflejados en el código aplicado con Codex. Los commits `b4fdd20`, `0495797` y `e5682fa` separan el canal autenticado, el borrador persistente y su integración con el editor.
 
 ## Errores detectados y verificación
 
@@ -23,8 +31,4 @@ Usé Codex para revisar los requisitos, proponer el diseño, implementar el cana
 - La compilación de React pasó. La prueba integrada usó tres sesiones aisladas de Chrome, Vite y FastAPI con una base SQLite temporal. Una cuenta de lectura recibió el cambio en 323 ms en la ejecución final. Se comprobó que la edición dejaba el historial intacto y que **Guardar versión** creaba una sola entrada con su evento de auditoría.
 - La migración se probó sobre una base temporal con el esquema previo. Después se aplicó en SQL Server local y se verificó la revisión `b539a781df62`.
 
-Para repetir la suite, ejecuta el siguiente comando desde `backend`.
-
-```powershell
-.\.venv\Scripts\python.exe -m pytest -q
-```
+El [README global](README.md#ejecutar-las-pruebas) documenta el comando para repetir la suite. La [demo con dos sesiones](README.md#cuentas-de-demostración) permite repetir la verificación del editor desde la interfaz.
