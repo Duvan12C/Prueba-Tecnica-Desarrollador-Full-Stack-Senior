@@ -67,14 +67,10 @@ function DialogContent({ title, description, confirmLabel, cancelLabel = 'Cancel
                         </div>
                     </div>
                     <div className="mt-4 flex flex-wrap justify-end gap-2">
-                        <Button ref={cancelButton} variant="custom" size="sm" disabled={!isPresent} onClick={onCancel}
-                            className="min-h-8! border-neutral-200! px-2.5! text-xs! text-secondary-800! hover:bg-neutral-50">
+                        <Button ref={cancelButton} variant="outline" size="sm" disabled={!isPresent} onClick={onCancel}>
                             {cancelLabel}
                         </Button>
-                        <Button variant="custom" size="sm" disabled={!isPresent} onClick={onConfirm}
-                            className={`min-h-8! px-2.5! text-xs! ${destructive
-                                ? 'border-danger! text-danger-text! hover:bg-danger-bg'
-                                : 'border-primary-500! text-primary-700! hover:bg-primary-100'}`}>
+                        <Button variant={destructive ? 'danger' : 'primary'} size="sm" disabled={!isPresent} onClick={onConfirm}>
                             {confirmLabel}
                         </Button>
                     </div>

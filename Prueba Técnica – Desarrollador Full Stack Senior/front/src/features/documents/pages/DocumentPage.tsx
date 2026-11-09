@@ -110,8 +110,8 @@ function OpenDocument({ documentId, readOnly }: { documentId: number; readOnly: 
                         </Button>
                     )}
                     {canDelete && (
-                        <Button variant="outline" disabled={isBusy} loading={isDeleting} loadingText="Eliminando…"
-                            className="text-danger-text! hover:bg-danger-bg!" onClick={() => setDeleteOpen(true)}
+                        <Button variant="danger" disabled={isBusy} loading={isDeleting} loadingText="Eliminando…"
+                            onClick={() => setDeleteOpen(true)}
                             startIcon={<Icon icon="tabler:trash" width="18" />}>
                             Eliminar documento
                         </Button>

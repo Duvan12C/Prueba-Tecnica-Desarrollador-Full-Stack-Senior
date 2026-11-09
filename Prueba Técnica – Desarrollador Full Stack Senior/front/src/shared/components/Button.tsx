@@ -38,20 +38,20 @@ export type ButtonProps = Omit<
 }
 
 const variantClasses: Record<ButtonVariant, string> = {
-    primary: 'border border-transparent bg-primary-600 text-white hover:bg-primary-700',
-    secondary: 'border border-transparent bg-secondary-950 text-white hover:bg-secondary-900',
-    outline: 'border border-neutral-200 bg-white text-secondary-900 hover:border-neutral-300 hover:bg-neutral-50',
-    ghost: 'border border-transparent bg-transparent text-secondary-700 hover:bg-neutral-100',
-    success: 'border border-transparent bg-tertiary-700 text-white hover:bg-tertiary-800',
-    danger: 'border border-transparent bg-danger text-white hover:opacity-90',
-    custom: 'border border-transparent bg-transparent text-inherit',
+    primary: 'border-primary-700/25 bg-primary-600 text-white shadow-xs hover:bg-primary-700 active:bg-primary-800',
+    secondary: 'border-secondary-200 bg-secondary-100 text-secondary-900 hover:bg-secondary-200',
+    outline: 'border-neutral-200 bg-white text-secondary-800 shadow-xs hover:border-primary-300 hover:bg-neutral-50',
+    ghost: 'border-transparent bg-transparent text-secondary-700 hover:bg-neutral-100',
+    success: 'border-success/30 bg-success-bg text-success-text hover:bg-success/15',
+    danger: 'border-danger/25 bg-danger-bg text-danger-text hover:border-danger/40 hover:bg-danger/15',
+    custom: 'border-transparent bg-transparent text-inherit',
 }
 
 const sizeClasses: Record<ButtonSize, string> = {
-    sm: 'min-h-9 gap-2 rounded-md px-3 text-sm',
-    md: 'min-h-11 gap-2 rounded-lg px-4 text-sm',
-    lg: 'min-h-12 gap-2 rounded-xl px-5 text-base',
-    icon: 'size-10 rounded-lg p-0',
+    sm: 'min-h-10 px-2.5 py-1.5 text-xs sm:min-h-8',
+    md: 'min-h-11 px-3 py-1.5 text-sm sm:min-h-9',
+    lg: 'min-h-11 px-4 py-2 text-sm sm:min-h-10',
+    icon: 'size-11 shrink-0 p-0 sm:size-9',
 }
 
 function Button({
@@ -98,7 +98,7 @@ function Button({
             type={type}
             disabled={isDisabled}
             className={[
-                'inline-flex items-center justify-center whitespace-nowrap font-semibold outline-none transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-60',
+                'inline-flex max-w-full items-center justify-center gap-1.5 rounded-md border text-center font-semibold wrap-anywhere outline-none transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-60 motion-reduce:transition-none',
                 sizeClasses[size],
                 variantClasses[variant],
                 fullWidth && 'w-full',
