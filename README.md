@@ -184,4 +184,6 @@ El servidor mantiene un borrador por documento y valida la revisión que envía 
 
 ## Uso de IA en la Fase 1
 
-La arquitectura del proyecto, el diseño de la base de datos y la elección de las librerías del frontend y del backend fueron decisiones mías. Durante la Fase 1 recurrí a la IA como apoyo puntual en la implementación porque disponía principalmente de las noches para avanzar. También consulté documentación de Python para entender cómo funcionaba el código. Dejo constancia de este uso porque el enunciado reservaba la asistencia de IA para la Fase 2.
+Esta fue mi segunda vez desarrollando un backend con Python. Durante la Fase 1 recurrí a la IA para apoyarme en parte de la implementación porque todavía estaba ganando experiencia con Python en el backend y disponía principalmente de las noches para avanzar. También consulté la documentación de Python para entender el código. Dejo constancia de ese uso porque el enunciado reservaba la asistencia de IA para la Fase 2.
+
+Yo definí la arquitectura del proyecto, diseñé la base de datos y elegí las librerías del frontend y del backend. En la revisión puedo explicar cómo funciona el código, qué implementé y por qué tomé esas decisiones.
