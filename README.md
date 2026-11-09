@@ -131,7 +131,13 @@ npm run dev -- --host localhost --port 5173 --strictPort
 
 ## Cuentas de demostración
 
-En una base de desarrollo recién migrada, registra estas dos cuentas desde **Crear cuenta**. Son credenciales de ejemplo para una demo local.
+Con DocSpace en ejecución en Docker, crea las dos cuentas desde la raíz del repositorio.
+
+```powershell
+docker compose exec -T api python -m app.cli.seed_demo
+```
+
+El comando registra las cuentas a través de la API. Si lo ejecutas otra vez, conserva las cuentas existentes y sus contraseñas. Estas credenciales son para una demo local. Si usas el arranque manual, puedes ejecutar `.\.venv\Scripts\python.exe -m app.cli.seed_demo` desde `backend` con la API local en ejecución.
 
 | Rol | Correo | Contraseña de ejemplo |
 | --- | --- | --- |
@@ -175,3 +181,7 @@ El servidor mantiene un borrador por documento y valida la revisión que envía 
 - [Documento de arquitectura](docs/arquitectura-docspace.pdf)
 - [Diagrama entidad-relación de la Fase 1](docs/diagrama-er.png). La [migración de borradores de la Fase 2](Prueba%20T%C3%A9cnica%20%E2%80%93%20Desarrollador%20Full%20Stack%20Senior/backend/migrations/versions/b539a781df62_add_document_drafts.py) describe el cambio posterior en el esquema.
 - [Proceso con agentes en la Fase 2](PROCESO-AGENTES.md)
+
+## Uso de IA en la Fase 1
+
+La arquitectura del proyecto, el diseño de la base de datos y la elección de las librerías del frontend y del backend fueron decisiones mías. Durante la Fase 1 recurrí a la IA como apoyo puntual en la implementación porque disponía principalmente de las noches para avanzar. También consulté documentación de Python para entender cómo funcionaba el código. Dejo constancia de este uso porque el enunciado reservaba la asistencia de IA para la Fase 2.
